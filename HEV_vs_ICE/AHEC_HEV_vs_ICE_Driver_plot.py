@@ -10,95 +10,50 @@ from PMG.COM.timeseries import mark_diff
 import json
 from PMG.read_data import read_table
 from AHEC_HEV_vs_ICE_Driver_initialize import *
+from PMG.COM.arrange import *
+from PMG.COM.plotfuns import *
+from PMG.read_data import reread_table
 
-dummy = 'TH'
-plot = 1
-savefig = 1
-
-directory = 'C:\\Users\\tangk\\Desktop\\AHEC EV\\'
-rstats = pd.read_csv(directory+'Rstats.csv',index_col=0,dtype=np.float64)
+directory = 'P:\\Data Analysis\\Projects\\AHEC EV\\'
 with open(directory+'params.json','r') as json_file:
-    to_JSON = json.load(json_file)
+    params = json.load(json_file)
 
-stat_info = pd.DataFrame(to_JSON['stats_label'])
-table = table.query('Subset==\'HEV vs ICE\' and ID11==\'' + dummy + '\'')
+res = {}
+for data in params['test']:
+    label1 = data['label1']
+    label2 = data['label2']
+    index = pd.MultiIndex.from_arrays([label1,label2])
+    res[data['name'][0]] = pd.Series(data['res'],index=index).unstack().dropna(axis=0, how='all').astype(np.float32)
 
-#%% plot mean +/- std. highlight where significant differences are
-plot_channels = [i for i in chdata.columns if (i[10:12]==dummy or 'VEHCG' in i or 'SEBE' in i)]
-double_peak = to_JSON['cat']['double_peak']
-no_double_peak = to_JSON['cat']['no_double_peak']
-stat_info = stat_info.query('name==\'chest_double_peak_comparison\' & value==\'p\'')
-for ch in plot_channels:
-    index = stat_info.query('channel==\'' + ch + '\'')
-    if len(index)==0:
-        continue
-    else:
-        index = index.index[0]
-    
-    xi = rstats.iloc[:,index]<0.05
-    x1 = np.mean(np.vstack(chdata[plot_channels[0]][double_peak].values),axis=0)
-    x2 = np.mean(np.vstack(chdata[plot_channels[0]][no_double_peak].values),axis=0)
-    sd1 = np.std(np.vstack(chdata[plot_channels[0]][double_peak].values),axis=0)
-    sd2 = np.std(np.vstack(chdata[plot_channels[0]][no_double_peak].values),axis=0)
-    
-    plt.fill_between(t,x1-sd1,x1+sd1,alpha=0.1,color='b')
-    plt.fill_between(t,x2-sd2,x2+sd2,alpha=0.1,color='k')
-    plt.plot(t[xi],x1[xi],'o',alpha=0.05,color='r')
-    plt.plot(t[xi],x2[xi],'o',alpha=0.05,color='r')
-    plt.plot(t,x1,color='b',label='double peak')
-    plt.plot(t,x2,color='k',label='no double peak')
-    plt.title(ch)
-    plt.legend()
-    plt.show()   
-    
+dummies = ['TH','H3']
+#%%
+plot_channels = ['Max_11CHST003STHACRC',
+                 'Max_11HEAD003STHACRA',
+                 'Max_11HICR0015THACRA',
+                 'Max_11SEBE0000B6FO0D',
+                 'Min_11CHST0000THACXC',
+                 'Min_11SPIN0100THACXC',
+                 'Tmax_11ACTBLE00THFOXB',
+                 'Tmin_10SIMELE00INACXD',
+                 'Max_11CHST003SH3ACRC',
+                 'Min_10SIMELE00INACXD',
+                 'Min_11ILACLE00THFOXA',
+                 'Min_11ILACRI00THFOXA']
 
-#%% plot pairs using CIs from Wilcoxon test in R
-plot_channels = [i for i in chdata.columns if (i[10:12]==dummy and i[2:6] in ['CHST','FEMR','HEAD','PELV'])]
-for ch in plot_channels:
-
-    if dummy=='TH':
-        ch_ref = ch
-    else:
-        ch_ref = ch[:10] + 'TH' + ch[12:]
-    k = stat_info.query('channel==\'' + ch_ref + '\' and value==\'lb\' and name==\'control_stats_ts\'').index
-    if len(k)>0:
-        k = k[0]
-    else:
-        continue
-
-    fig, axs = plt.subplots(nrows=3,ncols=3,sharey=True,figsize=(15,10))
-    i = 0
-
-    for j, tc in enumerate(table.index):
-        if j>0 and tc in table['Pair'][:j].values:
-            continue
-        if not table['Pair'][tc] in chdata.index or not tc in chdata.index:
-            if table['Model'][tc] in ['ACCORD','COOPER','ESCAPE','FUSION','JETTA','OPTIMA','PACIFICA','SMART FORTWO','SOUL']:
-                i = i + 1
-            continue
-        
-        x = chdata[ch][tc]
-        y = chdata[ch][table['Pair'][tc]]
-        
-
-        lb = -rstats.iloc[:,k].values        
-        ub = rstats.iloc[:,k+1].values
-        
-        ax = axs.flatten()[i]
-        
-        ti = np.logical_or(y-x < -2*lb, y-x > 2*ub)
-        ax.plot(t[ti],y[ti],'or',alpha=0.02)
-        
-        ax.plot(t,x,'b',linewidth=1,label=table['Model'][tc])
-        ax.plot(t,y,'k',linewidth=1,label=table['Pair Model'][tc])
-#        ax.fill_between(t,x-lb,x+ub,alpha=0.3)
-#        ax.fill_between(t,y-lb,y+ub,facecolor='k',alpha=0.3)
-        ax.set_title(table['Model'][tc])
+for t in ['Series_1','Series_2']:
+    subset = table.query(t + '==1')
+    for ch in plot_channels:
+        x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
+        if x is None or len(x)==0: continue
+        fig, ax = plt.subplots()
+        ax = plot_bar(ax, x)
+        ax.set_title(' '.join((t, ch)))
         ax.legend()
-        i = i + 1
-    fig.suptitle(ch)
+        plt.xticks(rotation=90)
+
 
 #%% plot pairs using CIs from probability distribution of difference
+dummy = 'TH'
 
 bounds = pd.read_csv(directory + 'ts_variance.csv',index_col=0)
 if dummy=='H3':
@@ -140,7 +95,7 @@ for ch in plot_channels:
         
 #        ax = plt.axes()
         ax = axs.flatten()[i]
-        ax = mark_diff(ax,tn,xn,yn,lp,up,xlab=table['Model'][tc],ylab=table['Pair Model'][tc],kernel_size=31,method='diff')
+        ax = mark_diff(ax,tn,xn,yn,lp,up,xlab=table['Model'][tc],ylab=table['Pair_Model'][tc],kernel_size=31,method='diff')
 #        ax = mark_diff(ax,tn,xn,yn,-100,100,xlab=table['Model'][tc],ylab=table['Pair Model'][tc],kernel_size=31,method='diff')
         ax.set_title(table['Model'][tc])
         ax.legend(fontsize=8)
