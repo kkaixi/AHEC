@@ -55,7 +55,32 @@ channels = ['10CVEHCG0000ACXD',
             '11CLAVLEOUTHFOXA',
             '11CLAVLEINTHFOXA',
             '11ILACLE00THFOXA',
-            '11ILACRI00THFOXA']
+            '11ILACRI00THFOXA',
+            '11NECKUP00THFOXA',
+            '11NECKUP00THFOZA',
+            '11NECKLO00THFOXA',
+            '11NECKLO00THFOZA',
+            '11NECKUP00H3FOZA',
+            '13HEAD0000HFACXA',
+            '13HEAD0000HFACRA',
+            '13NECKUP00HFFOXA',
+            '13NECKUP00HFFOYA',
+            '13NECKUP00HFFOZA',
+            '13NECKUP00HFFORA',
+            '13CHST0000HFACXC',
+            '13CHST0000HFDSXB',
+            '13LUSP0000HFFOXA',
+            '13ILACLE00HFFOXA',
+            '13ILACRI00HFFOXA',
+            '13PELV0000HFACXA',
+            '13FEMRLE00HFFOZB',
+            '13FEMRRI00HFFOZB',
+            '13SEBE0000B3FO0D',
+            '13SEBE0000B6FO0D',
+            '13HEAD003SHFACRA',
+            '13CHST003SHFACRC',
+            '11BRIC0000THAV0D',
+            '13BRIC0000HFAV0D']
 
 table, t, chdata = initialize(directory,channels,cutoff,verbose=False)
 
@@ -73,6 +98,26 @@ def get_all_features(write_csv=False):
                     'Tmin_': [get_argmin,i_to_t],
                     'Tmax_': [get_argmax,i_to_t]} 
     features = pd.concat(chdata.chdata.get_features(feature_funs).values(),axis=1,sort=True)
+    append = [features]
+    
+    # get normalized values
+    self_weight = table['Weight']
+    partner_weight = table.loc[table['Pair'],'Weight']
+    partner_weight.index = self_weight.index
+    ratio_weight = partner_weight/self_weight
+    
+    append.append(partner_weight.rename('Partner_weight'))
+    append.append(ratio_weight.rename('Ratio_weight'))
+    
+    append.append((features.filter(regex='M[ai][xn]_')
+                           .divide(ratio_weight.loc[features.index], axis=0)
+                           .rename(lambda x: x + '/ratio_weight', axis=1)))
+    
+    append.append((features.filter(regex='M[ai][xn]_')
+                           .divide(partner_weight.loc[features.index], axis=0)
+                           .rename(lambda x: x + '/partner_weight', axis=1)))
+    
+    features = pd.concat(append, axis=1)
     if write_csv:
         features.to_csv(directory + 'features.csv')
     return features

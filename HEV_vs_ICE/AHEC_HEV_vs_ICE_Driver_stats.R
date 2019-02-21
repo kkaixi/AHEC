@@ -1,7 +1,7 @@
-setwd('C:/Users/tangk/pmg-projects/AHEC/HEV_vs_ICE')
-source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/PMG/COM/read_data.R")
-source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/PMG/COM/helper.R")
-source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/PMG/COM/stat_tests.R")
+setwd('P:/Data Analysis/Projects/AHEC EV')
+source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/Lib/PMG/COM/read_data.R")
+source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/Lib/PMG/COM/helper.R")
+source("C:/Users/tangk/AppData/Local/Continuum/anaconda3/Lib/PMG/COM/stat_tests.R")
 library(jsonlite)
 
 # set directory and load JSON file
