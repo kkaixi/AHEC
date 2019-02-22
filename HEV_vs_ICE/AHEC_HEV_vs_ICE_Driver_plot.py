@@ -16,7 +16,10 @@ from PMG.read_data import reread_table
 import plotly.graph_objs as go
 from plotly.offline import plot
 import seaborn as sns
-from PMG.COM.easyname import get_units, renameISO
+from PMG.COM.easyname import get_units, rename
+from PMG.COM.helper import *
+from functools import partial
+from string import ascii_uppercase as letters
 
 directory = 'P:\\Data Analysis\\Projects\\AHEC EV\\'
 with open(directory+'params.json','r') as json_file:
@@ -30,6 +33,13 @@ for data in params['test']:
     res[data['name'][0]] = pd.Series(data['res'],index=index).unstack().dropna(axis=0, how='all').astype(np.float32)
 
 dummies = ['TH','H3']
+
+names = {'Max_11CHST003STHACRC': 'Chest 3ms clip',
+         'Max_11CHST003SH3ACRC': 'Chest 3ms clip',
+         'Max_11HEAD003STHACRA': 'Head 3ms clip',
+         'Max_11HEAD003SH3ACRA': 'Head 3ms clip',
+         'Max_11SEBE0000B6FO0D': 'Lap belt load'}
+rename = partial(rename, names=names)
 #%% mpl bar plots of individual pairs
 plot_channels = ['Max_11CHST003STHACRC',
                  'Max_11HEAD003STHACRA',
@@ -50,7 +60,7 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Max_13CHST003SHFACRC',
                  'Max_13HEAD0000HFACRA',
                  'Min_13CHST0000HFACXC',
-                 'Min_13SEBE0000B6FO0D',
+                 'Max_13SEBE0000B6FO0D',
                  'Max_11CHST003STHACRC/ratio_weight',
                  'Max_11HEAD003STHACRA/ratio_weight',
                  'Max_11CHST003SH3ACRC/ratio_weight',
@@ -64,18 +74,24 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Max_13CHST003SHFACRC/partner_weight',
                  'Max_13HEAD003SHFACRA/partner_weight']
 
+plot_channels = ['Max_11CHST003SH3ACRC',
+                 'Max_11HEAD003SH3ACRA',
+                 'Max_11SEBE0000B6FO0D']
 
 for s in ['Series_1','Series_2']:
-    subset = table.query(s + '==1')
+    subset = table.query(s + '==1 and ID11==\'H3\'')
+    pairs = subset['Pair_name'].unique()
+    codes = letters[:len(pairs)]
     for ch in plot_channels:
         x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
         if x is None or len(x)==0: continue
         x = {k: x[k].abs() for k in x}
         fig, ax = plt.subplots()
         ax = plot_bar(ax, x)
-        ax.set_title(' '.join((s, ch)))
-        ax.legend()
-        plt.xticks(rotation=90)
+        ax.set_xticklabels(list(codes))
+        ax = set_labels(ax, {'title': rename(ch), 'ylabel': get_units(ch), 'xlabel': 'Model'})
+        ax = adjust_font_sizes(ax, {'title': 24, 'ticklabels': 20, 'axlabels': 20})
+#        plt.xticks(rotation=90)
         plt.show()
         plt.close(fig)
 
@@ -197,18 +213,24 @@ for ch in plot_channels:
     plt.close(fig)
 
 #%% regression
-xlist = ['Min_11CHST0000THACXC']
-ylist = ['Max_11NECKLO00THFOXA']
+xlist = [i for i in features.columns if '10' in i and '/' not in i]
+ylist = ['Max_11NECKUP00THFOZA']
 
 subset = table.query('ID11==\'TH\'')
 for chx in xlist:
     for chy in ylist:
+        if chx==chy: continue
         x = arrange_by_group(subset, features[chx], 'Type')
         y = arrange_by_group(subset, features[chy], 'Type')
+        match_groups(x,y)
+        r2 = [rho(x[k], y[k]) for k in x]
+        if max(r2)<0.3 and min(r2)>-0.3: continue
         fig, ax = plt.subplots()
         ax = plot_scatter(ax, x, y)
         ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy})
-
+        ax.set_title(r2)
+        plt.show()
+        plt.close(fig)
 #%% partner protection with Series 2
 #%% mpl bar plots of individual pairs
 plot_channels = ['Max_11CHST003STHACRC',
@@ -218,8 +240,6 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Min_11CHST0000THACXC',
                  'Min_11SPIN0100THACXC',
                  'Min_11PELV0000THACXA',
-                 'Tmax_11ACTBLE00THFOXB',
-                 'Tmin_10SIMELE00INACXD',
                  'Min_10SIMELE00INACXD',
                  'Min_11ILACLE00THFOXA',
                  'Min_11ILACRI00THFOXA',
@@ -227,25 +247,20 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Max_13CHST003SHFACRC',
                  'Max_13HEAD0000HFACRA',
                  'Min_13CHST0000HFACXC',
-                 'Min_13SEBE0000B6FO0D',
-                 'Max_11CHST003STHACRC/ratio_weight',
-                 'Max_11HEAD003STHACRA/ratio_weight',
-                 'Max_11CHST003STHACRC/partner_weight',
-                 'Max_11HEAD003STHACRA/partner_weight',
-                 'Max_13CHST003SHFACRC/ratio_weight',
-                 'Max_13HEAD003SHFACRA/ratio_weight',
-                 'Max_13CHST003SHFACRC/partner_weight',
-                 'Max_13HEAD003SHFACRA/partner_weight']
+                 'Min_13SEBE0000B6FO0D']
 
 
-subset = table.query('Series_2==1')
+subset = table.loc[table.query('Series_2==1')['Pair']]
+subset['Pair_Type'] = table.loc[subset['Pair'], 'Type'].values
+subset['Pair_name'] = table.loc[subset['Pair'], 'Pair_name'].values
 for ch in plot_channels:
-    x = intersect_columns(arrange_by_group(subset, features.loc[subset['Pair'], ch], 'Type', col_key='Pair_name'))
+#    x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
+    x = arrange_by_group(subset, features[ch], 'Pair_Type', col_key='Pair_name')
     if x is None or len(x)==0: continue
     x = {k: x[k].abs() for k in x}
     fig, ax = plt.subplots()
     ax = plot_bar(ax, x)
-    ax.set_title(' '.join((s, ch)))
+    ax.set_title(ch)
     ax.legend()
     plt.xticks(rotation=90)
     plt.show()
