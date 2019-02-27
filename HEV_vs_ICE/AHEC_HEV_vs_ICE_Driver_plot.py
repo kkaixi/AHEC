@@ -38,8 +38,25 @@ names = {'Max_11CHST003STHACRC': 'Chest 3ms clip',
          'Max_11CHST003SH3ACRC': 'Chest 3ms clip',
          'Max_11HEAD003STHACRA': 'Head 3ms clip',
          'Max_11HEAD003SH3ACRA': 'Head 3ms clip',
-         'Max_11SEBE0000B6FO0D': 'Lap belt load'}
+         'Max_11SEBE0000B6FO0D': 'Lap belt load',
+         '11HEAD0000THACXA': 'Head Acx',
+         '11FEMRLE00THFOZB': 'Left Femur Axial Load'}
 rename = partial(rename, names=names)
+#%% time series overlays w/o highlight
+plot_channels = ['11HEAD0000THACXA',
+                 '11FEMRLE00THFOZB']
+subset = table.loc[['TC15-208','TC16-003']]
+for ch in plot_channels:
+    x = arrange_by_group(subset, chdata[ch], 'Type')
+    x['Electric (MY 2016)'] = x.pop('EV')
+    x['Conventional (MY 2015)'] = x.pop('ICE')
+    fig, ax = plt.subplots()
+    ax = plot_overlay(ax, t, x)
+    ax = set_labels(ax, {'title': rename(ch), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
+    if ch=='11FEMRLE00THFOZB':
+        ax.set_yticks(range(-15000, 10000, 5000))
+    ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'legend': 20, 'ticklabels': 18})
+    fig.savefig(directory + '2019 Presentation\\' + ch + '.png', dpi=600, bbox_inches='tight')
 #%% mpl bar plots of individual pairs
 plot_channels = ['Max_11CHST003STHACRC',
                  'Max_11HEAD003STHACRA',
