@@ -108,6 +108,8 @@ def get_all_features(write_csv=False):
     
     append.append(partner_weight.rename('Partner_weight'))
     append.append(ratio_weight.rename('Ratio_weight'))
+    append.append(self_weight.rename('Weight'))
+    append.append((self_weight*partner_weight).rename('Product_weight'))
     
     append.append((features.filter(regex='M[ai][xn]_')
                            .divide(ratio_weight.loc[features.index], axis=0)
@@ -117,12 +119,31 @@ def get_all_features(write_csv=False):
                            .divide(partner_weight.loc[features.index], axis=0)
                            .rename(lambda x: x + '/partner_weight', axis=1)))
     
+    append.append((features.filter(regex='M[ai][xn]_')
+                           .multiply(self_weight.loc[features.index], axis=0)
+                           .multiply(partner_weight.loc[features.index], axis=0)
+                           .rename(lambda x: x + '*Product_weight', axis=1)))
+    
     features = pd.concat(append, axis=1)
     if write_csv:
         features.to_csv(directory + 'features.csv')
     return features
 
 features = get_all_features(write_csv=True)
+
+#%% get differences in features
+diff_features = {}
+subset = table.query('Series_1==1 and Type==\'ICE\'')
+diff_features['S1'] = features.loc[subset.index] - features.loc[subset['Pair']].values
+
+subset = table.query('Series_2==1').groupby('Pair_name')
+diff = []
+for grp in subset:
+    ice_features = features.loc[grp[1].query('Type==\'ICE\'').index]
+    for i in ice_features.index:
+        diff.append(features.loc[[i]]-features.loc[grp[1].query('Type==\'EV\'').index].values)
+diff = pd.concat(diff)
+diff_features['S2'] = diff
 #%%
 if __name__=='__main__':
     to_JSON = {'project_name': 'HEV_vs_ICE_Driver',

@@ -67,7 +67,6 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Min_11SPIN0100THACXC',
                  'Min_11PELV0000THACXA',
                  'Min_11PELV0000H3ACXA',
-                 'Tmax_11ACTBLE00THFOXB',
                  'Tmin_10SIMELE00INACXD',
                  'Max_11CHST003SH3ACRC',
                  'Min_10SIMELE00INACXD',
@@ -77,40 +76,25 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Max_13CHST003SHFACRC',
                  'Max_13HEAD0000HFACRA',
                  'Min_13CHST0000HFACXC',
-                 'Max_13SEBE0000B6FO0D',
-                 'Max_11CHST003STHACRC/ratio_weight',
-                 'Max_11HEAD003STHACRA/ratio_weight',
-                 'Max_11CHST003SH3ACRC/ratio_weight',
-                 'Max_11HEAD003SH3ACRA/ratio_weight',
-                 'Max_11CHST003STHACRC/partner_weight',
-                 'Max_11HEAD003STHACRA/partner_weight',
-                 'Max_11CHST003SH3ACRC/partner_weight',
-                 'Max_11HEAD003SH3ACRA/partner_weight',
-                 'Max_13CHST003SHFACRC/ratio_weight',
-                 'Max_13HEAD003SHFACRA/ratio_weight',
-                 'Max_13CHST003SHFACRC/partner_weight',
-                 'Max_13HEAD003SHFACRA/partner_weight']
+                 'Max_13SEBE0000B6FO0D']
 
-plot_channels = ['Max_11CHST003SH3ACRC',
-                 'Max_11HEAD003SH3ACRA',
-                 'Max_11SEBE0000B6FO0D']
-
-for s in ['Series_1','Series_2']:
-    subset = table.query(s + '==1 and ID11==\'H3\'')
-    pairs = subset['Pair_name'].unique()
-    codes = letters[:len(pairs)]
-    for ch in plot_channels:
-        x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
-        if x is None or len(x)==0: continue
-        x = {k: x[k].abs() for k in x}
-        fig, ax = plt.subplots()
-        ax = plot_bar(ax, x)
-        ax.set_xticklabels(list(codes))
-        ax = set_labels(ax, {'title': rename(ch), 'ylabel': get_units(ch), 'xlabel': 'Model'})
-        ax = adjust_font_sizes(ax, {'title': 24, 'ticklabels': 20, 'axlabels': 20})
-#        plt.xticks(rotation=90)
-        plt.show()
-        plt.close(fig)
+for d in dummies:
+    for s in ['Series_1','Series_2']:
+        subset = table.query(s + '==1 and ID11==\'{}\''.format(d))
+        pairs = subset['Pair_name'].unique()
+        codes = letters[:len(pairs)]
+        for ch in plot_channels:
+            x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
+            if x is None or len(x)==0: continue
+            x = {k: x[k].abs() for k in x}
+            fig, ax = plt.subplots()
+            ax = plot_bar(ax, x)
+    #        ax.set_xticklabels(list(codes))
+            ax = set_labels(ax, {'title': rename(ch) + s, 'ylabel': get_units(ch), 'xlabel': 'Model'})
+            ax = adjust_font_sizes(ax, {'title': 24, 'ticklabels': 20, 'axlabels': 20})
+            plt.xticks(rotation=90)
+            plt.show()
+            plt.close(fig)
 
 #%% sns catplot
 plot_channels = [['Max_11CHST003STHACRC','Max_11CHST003SH3ACRC'],
@@ -149,6 +133,7 @@ for ch in plot_channels:
     ax = adjust_font_sizes(ax, {'ticklabels': 14, 'title': 20, 'ylabel': 20})
     plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
+
 #%% mpl bar plots of aggregated pairs
 plot_channels = ['Max_11CHST003STHACRC',
                  'Max_11HEAD003STHACRA',
@@ -225,23 +210,62 @@ for ch in plot_channels:
         ax.set_title(subset.at[tc,'Model'])
         ax.legend()
     plt.suptitle(ch)
-    fig.savefig(directory + ch + '.png', bbox_inches='tight')
-#    plt.show()
+#    fig.savefig(directory + ch + '.png', bbox_inches='tight')
+    plt.show()
     plt.close(fig)
 
-#%% regression
-xlist = [i for i in features.columns if '10' in i and '/' not in i]
-ylist = ['Max_11NECKUP00THFOZA']
+#%% regression--difference
+# plot: 1. weight vs. response; 2. partner weight vs. response; 3. partner weight/self weight ratio vs. response
 
-subset = table.query('ID11==\'TH\'')
+ylist = ['Max_11HEAD003STHACRA',
+         'Max_11HEAD003SH3ACRA',
+         'Max_11HICR0015THACRA',
+         'Max_11HICR0015H3ACRA',
+         'Max_11CHST003STHACRC',
+         'Max_11CHST003SH3ACRC']
+
+xlist = ['Weight',
+         'Min_10CVEHCG0000ACXD']
+
+subset = table.query('ID11==\'TH\' and Series_1==1 and Type==\'ICE\' and Pair_name!=\'SOUL\'')
+for chx in xlist:
+    for chy in ylist:
+        if chx==chy: continue
+        data = pd.DataFrame({'Pair': subset['Pair_name'].values, 
+                              'chx': features.loc[subset.index, chx]-features.loc[subset['Pair'], chx].values,
+#                              'chx': features.loc[subset['Pair'], chx].values/features.loc[subset.index, chx].values,
+                              'chy': features.loc[subset.index, chy]-features.loc[subset['Pair'], chy].values})
+        if data['chx'].isna().all() or data['chy'].isna().all(): continue
+        
+        fig, ax = plt.subplots()
+        ax = sns.scatterplot(x='chx', y='chy', hue='Pair', data=data, ax=ax)
+        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy})
+        plt.show()
+        plt.close(fig)
+
+#%% regression: no difference
+ylist = ['Max_11HEAD003STHACRA',
+         'Max_11HEAD003SH3ACRA',
+         'Max_11HICR0015THACRA',
+         'Max_11HICR0015H3ACRA',
+         'Max_11CHST003STHACRC',
+         'Max_11CHST003SH3ACRC']
+xlist = ['Weight',
+         'Partner_weight',
+         'Ratio_weight',
+         'Product_weight']
+
+subset = table.query('ID11==\'TH\' and Series_1==1 and Type==\'ICE\'')
 for chx in xlist:
     for chy in ylist:
         if chx==chy: continue
         x = arrange_by_group(subset, features[chx], 'Type')
         y = arrange_by_group(subset, features[chy], 'Type')
+        if len(x)==0 or len(y)==0: continue
         match_groups(x,y)
         r2 = [rho(x[k], y[k]) for k in x]
-        if max(r2)<0.3 and min(r2)>-0.3: continue
+#        if max(r2)<0.3 and min(r2)>-0.3: continue
+        
         fig, ax = plt.subplots()
         ax = plot_scatter(ax, x, y)
         ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy})
