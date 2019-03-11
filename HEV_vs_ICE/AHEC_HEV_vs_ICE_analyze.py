@@ -23,3 +23,24 @@ for data in params['test']:
 for test, data in res.items():
     print(test)
     print(data['p'][data['p']<0.05])
+
+#%%
+from sklearn.linear_model import LassoLars
+from sklearn.preprocessing import StandardScaler
+y = diff_features['Min_11HEAD0000THACXA']
+x = diff_features.drop([i for i in diff_features.columns if y.name in i], axis=1)
+drop = [i for i in x.columns if '11' in i or '13' in i or '/' in i or '*' in i] 
+
+x = x.drop(drop, axis=1)
+x = x.loc[~y.isna()]
+x = x.dropna(axis=1)
+y = y.dropna()
+
+ss = StandardScaler()
+x = pd.DataFrame(ss.fit_transform(x), index=x.index, columns=x.columns)
+
+model = LassoLars()
+model = model.fit(x, y)
+coefs = pd.Series(model.coef_, index=x.columns)
+coefs = coefs[coefs.abs()>0]
+print(coefs)

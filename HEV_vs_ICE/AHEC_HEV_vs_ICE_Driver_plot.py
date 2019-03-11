@@ -76,7 +76,13 @@ plot_channels = ['Max_11CHST003STHACRC',
                  'Max_13CHST003SHFACRC',
                  'Max_13HEAD0000HFACRA',
                  'Min_13CHST0000HFACXC',
-                 'Max_13SEBE0000B6FO0D']
+                 'Max_13SEBE0000B6FO0D',
+                 'Auc10CVEHCG0000ACXD',
+                 'Auc10SIMELE00INACXD',
+                 'Auc10SIMERI00INACXD']
+plot_channels = ['Auc10CVEHCG0000ACXD',
+                 'Auc10SIMELE00INACXD',
+                 'Auc10SIMERI00INACXD']
 
 for d in dummies:
     for s in ['Series_1','Series_2']:
@@ -223,16 +229,15 @@ ylist = ['Max_11HEAD003STHACRA',
          'Max_11HICR0015H3ACRA',
          'Max_11CHST003STHACRC',
          'Max_11CHST003SH3ACRC']
+ylist = ['Max_11CHST003STHACRC']
+xlist = ['Max_13CHST003SHFACRC']
 
-xlist = ['Weight',
-         'Min_10CVEHCG0000ACXD']
-
-subset = table.query('ID11==\'TH\' and Series_1==1 and Type==\'ICE\' and Pair_name!=\'SOUL\'')
+subset = table.query('ID11==\'TH\' and Series_1==1 and Type==\'ICE\'')
 for chx in xlist:
     for chy in ylist:
         if chx==chy: continue
         data = pd.DataFrame({'Pair': subset['Pair_name'].values, 
-                              'chx': features.loc[subset.index, chx]-features.loc[subset['Pair'], chx].values,
+                              'chx': (features.loc[subset.index, chx]-features.loc[subset['Pair'], chx].values),
 #                              'chx': features.loc[subset['Pair'], chx].values/features.loc[subset.index, chx].values,
                               'chy': features.loc[subset.index, chy]-features.loc[subset['Pair'], chy].values})
         if data['chx'].isna().all() or data['chy'].isna().all(): continue
@@ -244,18 +249,13 @@ for chx in xlist:
         plt.close(fig)
 
 #%% regression: no difference
-ylist = ['Max_11HEAD003STHACRA',
-         'Max_11HEAD003SH3ACRA',
-         'Max_11HICR0015THACRA',
-         'Max_11HICR0015H3ACRA',
-         'Max_11CHST003STHACRC',
-         'Max_11CHST003SH3ACRC']
-xlist = ['Weight',
-         'Partner_weight',
-         'Ratio_weight',
-         'Product_weight']
+ylist = ['Min_11FEMRLE00THFOZB/partner_weight']
+xlist = ['Min_10CVEHCG0000ACXD',
+         'Auc_10CVEHCG0000ACXD',
+         'Min_10SIMELE00INACXD',
+         'Auc_10SIMELE00INACXD']
 
-subset = table.query('ID11==\'TH\' and Series_1==1 and Type==\'ICE\'')
+subset = table.query('ID11==\'TH\' and Series_1==1')
 for chx in xlist:
     for chy in ylist:
         if chx==chy: continue
@@ -268,8 +268,8 @@ for chx in xlist:
         
         fig, ax = plt.subplots()
         ax = plot_scatter(ax, x, y)
-        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy})
-        ax.set_title(r2)
+        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy, 'legend': {'bbox_to_anchor': (1,1)}})
+#        ax.set_title(r2)
         plt.show()
         plt.close(fig)
 #%% partner protection with Series 2

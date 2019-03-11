@@ -17,12 +17,15 @@ directory = 'P:\\Data Analysis\\Projects\\AHEC EV\\'
 cutoff = range(100,1600)
 
 channels = ['10CVEHCG0000ACXD',
+            '10SIMELE00INACXD',
+            '10SIMERI00INACXD',
             '11HEAD003STHACRA',
+            '11HICR0015THACRA',
             '11CHST003STHACRC',
             '11HEAD0000THACXA',
+            '11HEAD0000THACRA',
             '11CHST0000THACXC',
             '11PELV0000THACXA',
-            '11HICR0015THACRA',
             '11FEMRLE00THFOZB',
             '11FEMRRI00THFOZB',
             '11ACTBLE00THFORB',
@@ -42,6 +45,7 @@ channels = ['10CVEHCG0000ACXD',
             '11HEAD003SH3ACRA',
             '11CHST003SH3ACRC',
             '11HEAD0000H3ACXA',
+            '11HEAD0000H3ACRA',
             '11CHST0000H3ACXC',
             '11PELV0000H3ACXA',
             '11HICR0015H3ACRA',
@@ -50,8 +54,6 @@ channels = ['10CVEHCG0000ACXD',
             '11FEMRRI00H3FOZB',
             '11SEBE0000B3FO0D',
             '11SEBE0000B6FO0D',
-            '10SIMELE00INACXD',
-            '10SIMERI00INACXD',
             '11CLAVLEOUTHFOXA',
             '11CLAVLEINTHFOXA',
             '11ILACLE00THFOXA',
@@ -96,7 +98,8 @@ def get_all_features(write_csv=False):
     feature_funs = {'Min_': [get_min],
                     'Max_': [get_max],
                     'Tmin_': [get_argmin,i_to_t],
-                    'Tmax_': [get_argmax,i_to_t]} 
+                    'Tmax_': [get_argmax,i_to_t],
+                    'Auc_': [get_auc]} 
     features = pd.concat(chdata.chdata.get_features(feature_funs).values(),axis=1,sort=True)
     append = [features]
     
@@ -114,6 +117,10 @@ def get_all_features(write_csv=False):
     append.append((features.filter(regex='M[ai][xn]_')
                            .divide(ratio_weight.loc[features.index], axis=0)
                            .rename(lambda x: x + '/ratio_weight', axis=1)))
+    
+    append.append((features.filter(regex='M[ai][xn]_')
+                           .divide(self_weight.loc[features.index], axis=0)
+                           .rename(lambda x: x + '/weight', axis=1)))
     
     append.append((features.filter(regex='M[ai][xn]_')
                            .divide(partner_weight.loc[features.index], axis=0)
