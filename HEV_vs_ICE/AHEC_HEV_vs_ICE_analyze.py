@@ -8,6 +8,7 @@ Created on Wed Feb  6 17:06:50 2019
 import json
 import pandas as pd
 import numpy as np
+import seaborn as sns
 
 directory = 'P:\\Data Analysis\\Projects\\AHEC EV\\'
 with open(directory + 'params.json','r') as json_file:
@@ -24,23 +25,43 @@ for test, data in res.items():
     print(test)
     print(data['p'][data['p']<0.05])
 
-#%%
-from sklearn.linear_model import LassoLars
-from sklearn.preprocessing import StandardScaler
-y = diff_features['Min_11HEAD0000THACXA']
-x = diff_features.drop([i for i in diff_features.columns if y.name in i], axis=1)
-drop = [i for i in x.columns if '11' in i or '13' in i or '/' in i or '*' in i] 
+#%% create a linear regression model and use it to predict responses based on weight/partner weight to 
+# assess how much the two account for observed differences in the response
+from sklearn.linear_model import LinearRegression
+#ylist = ['Max_11HEAD003STHACRA/partner_weight',
+#         'Max_11CHST003STHACRC/partner_weight',
+#         'Max_11CHST003SH3ACRC/partner_weight']
+#xlist = ['Weight']
+ylist = ['Max_11HEAD003STHACRA',
+         'Max_11CHST003STHACRC',
+         'Max_11CHST003SH3ACRC']
+xlist = ['Weight']
+error = []
+subset = table.drop('TC12-006').query('Type==\'ICE\'')
+subset_test = table.drop('TC12-006')
+for chx in xlist:
+    for chy in ylist:
+        x = features.loc[subset.index, chx]
+        y = features.loc[subset.index, chy]
+        i = ~(x.isna() | y.isna())
+        i = i[i].index
+        x, y = x[i].to_frame().values, y[i].to_frame().values
+        
+        x_test = features.loc[subset_test.index, chx]
+        y_test = features.loc[subset_test.index, chy]
+        i_test = ~(x_test.isna() | y_test.isna())
+        i_test = i_test[i_test].index
+        x_test, y_test = x_test[i_test].to_frame().values, y_test[i_test].to_frame().values
+        y_test = np.squeeze(y_test)
+        
+        lr = LinearRegression()
+        lr = lr.fit(x, y)
+        y_pred = np.squeeze(lr.predict(x_test))
+        err = y_pred-y_test
+        error.append(pd.DataFrame({'Error': err, 'TC': i_test, 'Response': chy, 'Type': table.loc[i_test, 'Type']}))
+error = pd.concat(error)
 
-x = x.drop(drop, axis=1)
-x = x.loc[~y.isna()]
-x = x.dropna(axis=1)
-y = y.dropna()
-
-ss = StandardScaler()
-x = pd.DataFrame(ss.fit_transform(x), index=x.index, columns=x.columns)
-
-model = LassoLars()
-model = model.fit(x, y)
-coefs = pd.Series(model.coef_, index=x.columns)
-coefs = coefs[coefs.abs()>0]
-print(coefs)
+#ax = sns.boxplot(x='Response', y='Error', hue='Type', boxprops={'alpha': 0.5}, data=error)
+ax.axhline(0,linewidth=1,color='k')
+ax = sns.stripplot(x='Response', y='Error', hue='Type', data=error, ax=ax)
+ax.tick_params(axis='x', rotation=90)

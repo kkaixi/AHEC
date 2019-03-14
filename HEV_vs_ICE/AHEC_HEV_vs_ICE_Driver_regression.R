@@ -25,16 +25,17 @@ summary(model)
 plot(diff.features$Ratio_weight, diff.features$Max_11CHST003STHACRC)
 
 
-responses <- c('Max_11HEAD003STHACRA', 'Max_11HICR0015THACRA', 'Max_11CHST003STHACRC', 'Min_11SPIN0100THACXC',
-               'Min_11ILACLE00THFOXA', 'Max_11NECKUP00THFOZA', 'Max_11CHST003SH3ACRC', 'Max_11SEBE0000B6FO0D')
+subset <- table.query(table, c('Type==\'ICE\''))
+data <- features[subset$TC, ]
+responses <- c('Max_11HEAD003STHACRA', 'Max_11CHST003SH3ACRC', 'Max_11CHST003STHACRC')
 for (r in responses){
   #model <- lm(Max_11HEAD003STHACRA.partner_weight ~ Weight, data=features)
-  model <- eval(parse(text=paste0('lm(', r, '.partner_weight ~ Weight, data=features)')))
+  model <- eval(parse(text=paste0('lm(', r, ' ~ Weight, data=data)')))
   print(r)
-  print(summary(model))
+  #print(summary(model)$coefficients['Weight','Estimate']*1e5)
+  print(summary(model)$coefficients[,'Pr(>|t|)'])
+  print(summary(model)$r.squared)
   print('\n')}
-
-table[eval(parse(text=paste("table$",query[i]))),]
 
 
 plot(features$Ratio_weight, features$Max_11CHST003STHACRC.partner_weight)
