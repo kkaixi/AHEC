@@ -20,6 +20,7 @@ from PMG.COM.easyname import get_units, rename
 from PMG.COM.helper import *
 from functools import partial
 from string import ascii_uppercase as letters
+import re
 
 directory = 'P:\\Data Analysis\\Projects\\AHEC EV\\'
 with open(directory+'params.json','r') as json_file:
@@ -91,6 +92,27 @@ for grp in grouped:
         ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'legend': 20, 'ticklabels': 18})
         plt.show()
         plt.close(fig)
+#%%
+      
+plot_channels = [['Max_11HICR0015THACRA','Max_11HICR0015H3ACRA'],
+                 ['Max_11HEAD003STHACRA','Max_11HEAD003SH3ACRA'],
+                 ['Min_11HEAD0000THACXA','Min_11HEAD0000H3ACXA'],
+                 ['Max_11NECKUP00THFOZA','Max_11NECKUP00H3FOZA'],
+                 ['Max_11CHST003STHACRC','Max_11CHST003SH3ACRC'],
+                 ['Min_11CHST0000THACXC','Min_11CHST0000H3ACXC']]
+subset = table.query('Pair_name==\'FUSION\'')
+for ch in plot_channels:
+    feat_subset = features.loc[subset.index, ch]
+    if len(ch)>1:
+        feat_subset = feat_subset.dropna(how='all').apply(np.nansum, axis=1).rename('ch').abs()
+    else:
+        feat_subset = feat_subset.squeeze().rename('ch').abs()
+    x = pd.concat((subset, feat_subset), axis=1)
+    fig, ax = plt.subplots()
+    ax = sns.barplot(x='ID11', y='ch', hue='Type', data=x)
+    ax = set_labels(ax, {'title': rename(ch[0]), 'ylabel': get_units(ch[0]), 'xlabel': ''})
+    ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'ticklabels': 20})
+    
 #%% mpl bar plots of individual pairs
 plot_channels = ['Max_11HICR0015THACRA',
                  'Max_11HICR0015H3ACRA',
@@ -154,9 +176,9 @@ plot_channels = [['Max_11HICR0015THACRA','Max_11HICR0015H3ACRA'],
 
 subset = table.query('ID13!=\'YA\'')
 
-pairs = subset.query('Series_1==1 and Type==\'ICE\'')['Pair']
-#pairs = pairs.append((subset.query('Series_2==1 and Type==\'ICE\'')
-#                            .apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)))
+#pairs = subset.query('Series_1==1 and Type==\'ICE\'')['Pair']
+pairs = (subset.query('Series_2==1 and Type==\'ICE\'')
+               .apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1))
 r = re.compile('_\d\d')
 
 
