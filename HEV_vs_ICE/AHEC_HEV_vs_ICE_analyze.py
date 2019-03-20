@@ -21,47 +21,34 @@ for data in params['test']:
     index = pd.MultiIndex.from_arrays([label1,label2])
     res[data['name'][0]] = pd.Series(data['res'],index=index).unstack().dropna(axis=0, how='all').astype(np.float32)
     
-for test, data in res.items():
-    print(test)
-    print(data['p'][data['p']<0.05])
+#for test, data in res.items():
+#    pvals = data['p'].filter(regex='M[ai][xn]_\w{16}$')
+#    indices_sig = pvals[pvals<0.05]
+#    print(test)
+#    print(indices_sig)
+    
+plot_channels = ['Max_11HICR0015THACRA',
+                 'Max_11HICR0015H3ACRA',
+                 'Max_11HEAD0000THACRA',
+                 'Max_11HEAD0000H3ACRA',
+                 'Min_11HEAD0000THACXA',
+                 'Min_11HEAD0000H3ACXA',
+                 'Max_11NECKUP00THFOZA',
+                 'Max_11NECKUP00H3FOZA',
+                 'Max_11CHST0000THACRC',
+                 'Max_11CHST0000H3ACRC',
+                 'Min_11CHST0000THACXC',
+                 'Min_11CHST0000H3ACXC',
+                 'Min_11PELV0000THACXA',
+                 'Min_11PELV0000H3ACXA',
+                 'Min_11SPIN0100THACXC',
+                 'Max_13HEAD0000HFACRA',
+                 'Min_13HEAD0000HFACXA',
+                 'Max_13NECKUP00HFFOZA',
+                 'Max_13CHST0000HFACRC',
+                 'Min_13CHST0000HFACXC',
+                 'Min_13PELV0000HFACXA']
+for k, df in res.items():
+    print(k)
+    print(df.loc[plot_channels, 'p'].dropna(axis=0, how='all'))
 
-#%% create a linear regression model and use it to predict responses based on weight/partner weight to 
-# assess how much the two account for observed differences in the response
-from sklearn.linear_model import LinearRegression
-#ylist = ['Max_11HEAD003STHACRA/partner_weight',
-#         'Max_11CHST003STHACRC/partner_weight',
-#         'Max_11CHST003SH3ACRC/partner_weight']
-#xlist = ['Weight']
-ylist = ['Max_11HEAD003STHACRA',
-         'Max_11CHST003STHACRC',
-         'Max_11CHST003SH3ACRC']
-xlist = ['Weight']
-error = []
-subset = table.drop('TC12-006').query('Type==\'ICE\'')
-subset_test = table.drop('TC12-006')
-for chx in xlist:
-    for chy in ylist:
-        x = features.loc[subset.index, chx]
-        y = features.loc[subset.index, chy]
-        i = ~(x.isna() | y.isna())
-        i = i[i].index
-        x, y = x[i].to_frame().values, y[i].to_frame().values
-        
-        x_test = features.loc[subset_test.index, chx]
-        y_test = features.loc[subset_test.index, chy]
-        i_test = ~(x_test.isna() | y_test.isna())
-        i_test = i_test[i_test].index
-        x_test, y_test = x_test[i_test].to_frame().values, y_test[i_test].to_frame().values
-        y_test = np.squeeze(y_test)
-        
-        lr = LinearRegression()
-        lr = lr.fit(x, y)
-        y_pred = np.squeeze(lr.predict(x_test))
-        err = y_pred-y_test
-        error.append(pd.DataFrame({'Error': err, 'TC': i_test, 'Response': chy, 'Type': table.loc[i_test, 'Type']}))
-error = pd.concat(error)
-
-#ax = sns.boxplot(x='Response', y='Error', hue='Type', boxprops={'alpha': 0.5}, data=error)
-ax.axhline(0,linewidth=1,color='k')
-ax = sns.stripplot(x='Response', y='Error', hue='Type', data=error, ax=ax)
-ax.tick_params(axis='x', rotation=90)

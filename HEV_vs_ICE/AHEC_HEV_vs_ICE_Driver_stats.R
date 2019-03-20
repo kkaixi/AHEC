@@ -37,7 +37,7 @@ for(i in 1:(dim(tests)[1])){
 	params$test[[i]]$res <- as.vector(out$stats)
 	nlabel <- length(unique(names(out$stats)))
 	nrep <- length(names(out$stats))/nlabel
-	params$test[[i]]$label1 <- rep(names(x), each=nlabel)
+	params$test[[i]]$label1 <- rep(out$channels, each=nlabel)
 	params$test[[i]]$label2 <- rep(names(out$stats)[1:nlabel], nrep)
 	flush.console()
 }

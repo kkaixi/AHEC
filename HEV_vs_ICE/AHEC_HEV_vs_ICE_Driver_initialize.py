@@ -22,10 +22,12 @@ channels = ['10CVEHCG0000ACXD',
             '11BRIC0000THAV0D',
             '11HEAD003STHACRA',
             '11HICR0015THACRA',
+            '11HICR0015TH00RA',
             '11CHST003STHACRC',
             '11HEAD0000THACXA',
             '11HEAD0000THACRA',
             '11CHST0000THACXC',
+            '11CHST0000THACRC',
             '11PELV0000THACXA',
             '11FEMRLE00THFOZB',
             '11FEMRRI00THFOZB',
@@ -56,6 +58,7 @@ channels = ['10CVEHCG0000ACXD',
             '11HEAD0000H3ACXA',
             '11HEAD0000H3ACRA',
             '11CHST0000H3ACXC',
+            '11CHST0000H3ACRC',
             '11PELV0000H3ACXA',
             '11HICR0015H3ACRA',
             '11CHST0000H3DSXB',
@@ -71,6 +74,7 @@ channels = ['10CVEHCG0000ACXD',
             '13NECKUP00HFFOZA',
             '13NECKUP00HFFORA',
             '13CHST0000HFACXC',
+            '13CHST0000HFACRC',
             '13CHST0000HFDSXB',
             '13LUSP0000HFFOXA',
             '13ILACLE00HFFOXA',
@@ -97,9 +101,9 @@ def get_all_features(write_csv=False):
     i_to_t = get_i_to_t(t)
     feature_funs = {'Min_': [get_min],
                     'Max_': [get_max],
+                    'Auc_': [get_auc],
                     'Tmin_': [get_argmin,i_to_t],
-                    'Tmax_': [get_argmax,i_to_t],
-                    'Auc_': [get_auc]} 
+                    'Tmax_': [get_argmax,i_to_t]} 
     features = pd.concat(chdata.chdata.get_features(feature_funs).values(),axis=1,sort=True)
     append = [features]
     
@@ -113,23 +117,24 @@ def get_all_features(write_csv=False):
     append.append(ratio_weight.rename('Ratio_weight'))
     append.append(self_weight.rename('Weight'))
     append.append((self_weight*partner_weight).rename('Product_weight'))
+    append.append(table['Speed2'])
     
-    append.append((features.filter(regex='M[ai][xn]_')
-                           .divide(ratio_weight.loc[features.index], axis=0)
-                           .rename(lambda x: x + '/ratio_weight', axis=1)))
-    
-    append.append((features.filter(regex='M[ai][xn]_')
-                           .divide(self_weight.loc[features.index], axis=0)
-                           .rename(lambda x: x + '/weight', axis=1)))
-    
-    append.append((features.filter(regex='M[ai][xn]_')
-                           .divide(partner_weight.loc[features.index], axis=0)
-                           .rename(lambda x: x + '/partner_weight', axis=1)))
-    
-    append.append((features.filter(regex='M[ai][xn]_')
-                           .multiply(self_weight.loc[features.index], axis=0)
-                           .multiply(partner_weight.loc[features.index], axis=0)
-                           .rename(lambda x: x + '*Product_weight', axis=1)))
+#    append.append((features.filter(regex='M[ai][xn]_')
+#                           .divide(ratio_weight.loc[features.index], axis=0)
+#                           .rename(lambda x: x + '/ratio_weight', axis=1)))
+#    
+#    append.append((features.filter(regex='M[ai][xn]_')
+#                           .divide(self_weight.loc[features.index], axis=0)
+#                           .rename(lambda x: x + '/weight', axis=1)))
+#    
+#    append.append((features.filter(regex='M[ai][xn]_')
+#                           .divide(partner_weight.loc[features.index], axis=0)
+#                           .rename(lambda x: x + '/partner_weight', axis=1)))
+#    
+#    append.append((features.filter(regex='M[ai][xn]_')
+#                           .multiply(self_weight.loc[features.index], axis=0)
+#                           .multiply(partner_weight.loc[features.index], axis=0)
+#                           .rename(lambda x: x + '*Product_weight', axis=1)))
     
     features = pd.concat(append, axis=1)
     if write_csv:
@@ -152,31 +157,129 @@ for grp in subset:
 diff = pd.concat(diff)
 diff_features['S2'] = diff
 #%%
-if __name__=='__main__':
+def write_json():
+    s2_ice = table.query('Series_2==1 and Type==\'ICE\' and Speed==48 and ID11==\'TH\'')
+    s2_ev = s2_ice.apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)
+
     to_JSON = {'project_name': 'HEV_vs_ICE_Driver',
                'directory'   : directory,
-               'cat'     : {'Series_1_ICE'   : list(table.query('Series_1==1 and Type==\'ICE\'').index),
-                            'Series_1_EV'    : list(table.query('Series_1==1 and Type==\'ICE\'')['Pair']),
-                            'Series_2_ICE_v1': list(table.drop('TC17-025').query('Series_2==1 and Type==\'ICE\'').sort_values('Model').index),
-                            'Series_2_EV_v1' : list(table.drop('TC17-025').query('Series_2==1 and Type==\'EV\'').sort_values('Counterpart').index),
-                            'Series_2_ICE_v2': list(table.drop('TC15-035').query('Series_2==1 and Type==\'ICE\'').sort_values('Model').index),
-                            'Series_2_EV_v2' : list(table.drop('TC15-035').query('Series_2==1 and Type==\'EV\'').sort_values('Counterpart').index)},
+               'cat'     : {'Series_1_ICE_48_THOR' : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID11==\'TH\'').index),
+                            'Series_1_EV_48_THOR'  : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID11==\'TH\'')['Pair']),
+                            'Series_1_ICE_48_H3'   : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID11==\'H3\'').index),
+                            'Series_1_EV_48_H3'    : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID11==\'H3\'')['Pair']),
+                            'Series_1_ICE_48_HF'   : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID13==\'HF\'').index),
+                            'Series_1_EV_48_HF'    : list(table.query('Series_1==1 and Type==\'ICE\' and Speed==48 and ID13==\'HF\'')['Pair']),
+                            'Series_1_ICE_all_THOR': list(table.query('Series_1==1 and Type==\'ICE\' and ID11==\'TH\'').index),
+                            'Series_1_EV_all_THOR' : list(table.query('Series_1==1 and Type==\'ICE\' and ID11==\'TH\'')['Pair']),
+                            'Series_1_ICE_all_H3'  : list(table.query('Series_1==1 and Type==\'ICE\' and ID11==\'H3\'').index),
+                            'Series_1_EV_all_H3'   : list(table.query('Series_1==1 and Type==\'ICE\' and ID11==\'H3\'')['Pair']),
+                            'Series_1_ICE_all_HF'  : list(table.query('Series_1==1 and Type==\'ICE\' and ID13==\'HF\'').index),
+                            'Series_1_EV_all_HF'   : list(table.query('Series_1==1 and Type==\'ICE\' and ID13==\'HF\'')['Pair']),
+                            'Series_2_ICE'         : list(s2_ev.index),
+                            'Series_2_EV'          : list(s2_ev.values)},
                'data'    : [{'features'      : 'features.csv'}],
-               'test'    : [{'name'       : 'Series_1_wilcox',
-                             'test1'      : 'Series_1_ICE',
-                             'test2'      : 'Series_1_EV',
+               'test'    : [{'name'       : 'Series_1_48_THOR_wilcox',
+                             'test1'      : 'Series_1_ICE_48_THOR',
+                             'test2'      : 'Series_1_EV_48_THOR',
                              'paired'     : True,
                              'testname'   : 'wilcoxon',
                              'data'       : 'features',
                              'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
-                            {'name'       : 'Series_1_t',
-                             'test1'      : 'Series_1_ICE',
-                             'test2'      : 'Series_1_EV',
+                            {'name'       : 'Series_1_48_THOR_t',
+                             'test1'      : 'Series_1_ICE_48_THOR',
+                             'test2'      : 'Series_1_EV_48_THOR',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                             {'name'       : 'Series_1_48_H3_wilcox',
+                             'test1'      : 'Series_1_ICE_48_H3',
+                             'test2'      : 'Series_1_EV_48_H3',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_48_H3_t',
+                             'test1'      : 'Series_1_ICE_48_H3',
+                             'test2'      : 'Series_1_EV_48_H3',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_48_HF_wilcox',
+                             'test1'      : 'Series_1_ICE_48_HF',
+                             'test2'      : 'Series_1_EV_48_HF',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_48_HF_t',
+                             'test1'      : 'Series_1_ICE_48_HF',
+                             'test2'      : 'Series_1_EV_48_HF',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                             {'name'       : 'Series_1_all_THOR_wilcox',
+                             'test1'      : 'Series_1_ICE_all_THOR',
+                             'test2'      : 'Series_1_EV_all_THOR',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_all_THOR_t',
+                             'test1'      : 'Series_1_ICE_all_THOR',
+                             'test2'      : 'Series_1_EV_all_THOR',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                             {'name'       : 'Series_1_all_H3_wilcox',
+                             'test1'      : 'Series_1_ICE_all_H3',
+                             'test2'      : 'Series_1_EV_all_H3',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_all_H3_t',
+                             'test1'      : 'Series_1_ICE_all_H3',
+                             'test2'      : 'Series_1_EV_all_H3',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_all_HF_wilcox',
+                             'test1'      : 'Series_1_ICE_all_HF',
+                             'test2'      : 'Series_1_EV_all_HF',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_1_all_HF_t',
+                             'test1'      : 'Series_1_ICE_all_HF',
+                             'test2'      : 'Series_1_EV_all_HF',
+                             'paired'     : True,
+                             'testname'   : 'ttest',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_2_48_wilcox',
+                             'test1'      : 'Series_2_ICE',
+                             'test2'      : 'Series_2_EV',
+                             'paired'     : True,
+                             'testname'   : 'wilcoxon',
+                             'data'       : 'features',
+                             'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'},
+                            {'name'       : 'Series_2_48_t',
+                             'test1'      : 'Series_2_ICE',
+                             'test2'      : 'Series_2_EV',
                              'paired'     : True,
                              'testname'   : 'ttest',
                              'data'       : 'features',
                              'args'       : 'exact=FALSE,correct=TRUE,conf.level=0.95'}], 
-               'test2'  : None}
-    
+                             'test2'  : None}    
+               
     with open(directory+'params.json','w') as json_file:
         json.dump(to_JSON,json_file)
+
+if __name__=='__main__':
+    write_json()
