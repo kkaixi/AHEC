@@ -40,14 +40,19 @@ names = {'Min_11HEAD0000THACXA': 'Head Acx',
          'Min_13HEAD0000HFACXA': 'Head Acx',
          'Min_11HEAD0000xxACXA': 'Head Acx',
          'Max_11HEAD0000xxACRA': 'Head AcR',
+         'Max_11HEAD0000THACRA': 'Head AcR',
+         'Max_13HEAD0000HFACRA': 'Head AcR',
          'Min_11CHST0000THACXC': 'Chest Acx',
          'Min_11CHST0000H3ACXC': 'Chest Acx',
          'Min_13CHST0000HFACXC': 'Chest Acx',
          'Min_11CHST0000xxACXC': 'Chest Acx',
          'Max_11CHST0000xxACRC': 'Chest AcR',
+         'Max_11CHST0000THACRC': 'Chest AcR',
+         'Max_13CHST0000HFACRC': 'Chest AcR',
          'Min_11SPIN0100THACXC': 'Upper Spine Acx',
          '11HEAD0000THACXA': 'Head Acx',
          '11FEMRLE00THFOZB': 'Left Femur Fz',
+         '11FEMRRI00THFOZB': 'Right Femur Fz',
          'Max_11NECKUP00THFOZA': 'Upper Neck Fz',
          'Max_11NECKUP00H3FOZA': 'Upper Neck Fz',
          'Max_13NECKUP00HFFOZA': 'Upper Neck Fz',
@@ -55,31 +60,35 @@ names = {'Min_11HEAD0000THACXA': 'Head Acx',
          'TH': 'THOR',
          'H3': 'Hybrid III',
          'HF': 'Hybrid III Female',
-         'Min_11PELV0000xxACXA': 'Pelvis Acx'}
-              
+         'Min_11PELV0000xxACXA': 'Pelvis Acx',
+         'Min_13PELV0000HFACXA': 'Pelvis Acx',
+         'Min_10CVEHCG0000ACXD': 'Vehicle CG Acx',
+         'Min_10SIMELE00INACXD': 'Left B-Pillar Acx'}
+ 
 rename = partial(rename, names=names)
 #%% time series overlays w/o highlight
-plot_channels = ['10CVEHCG0000ACXD',
-                 '10SIMELE00INACXD',
-                 '11HEAD0000THACXA',
-                 '11NECKUP00THFOZA',
-                 '11SPIN0100THACXC',
-                 '11CHST0000THACXC',
-                 '11PELV0000THACXA',
+plot_channels = ['11HEAD0000THACXA',
                  '11FEMRLE00THFOZB',
                  '11FEMRRI00THFOZB']
-grouped = table.table.query_list('Model',['SOUL','SOUL EV','OPTIMA','OPTIMA PHEV']).groupby('Model')
-for grp in grouped:
+grouped = table.table.query_list('Model',['SOUL','SOUL EV']).groupby(['Pair_name','Speed'])
+for i, grp in enumerate(grouped):
     subset = grp[1]
     subset['TC'] = subset.index
     for ch in plot_channels:
-        x = arrange_by_group(subset, chdata[ch], 'TC')
+        x = arrange_by_group(subset, chdata[ch], 'Type')
 #        x['Electric (MY 2016)'] = x.pop('EV')
 #        x['Conventional (MY 2015)'] = x.pop('ICE')
         fig, ax = plt.subplots()
         ax = plot_overlay(ax, t, x)
-        ax = set_labels(ax, {'title': ' '.join((grp[0], rename(ch))), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
+        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
+        ax.legend(ncol=2)
         ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'legend': 20, 'ticklabels': 18})
+        if 'FOZ' in ch:
+            ax.set_ylabel(ax.get_ylabel() + r' ($\times 10^4$)')
+            ax.set_ylim(-14000, 3800)
+            ax.ticklabel_format(style='sci', axis='y', scilimits=(0,1))
+        elif 'ACX' in ch:
+            ax.set_ylim(-70, 10)
         plt.show()
         plt.close(fig)
 #%%
@@ -148,7 +157,9 @@ for d in dummies:
             plt.close(fig)
 
 #%% sns catplot
-plot_channels = [['Max_11HEAD0000THACRA','Max_11HEAD0000H3ACRA'],
+plot_channels = [['Min_10CVEHCG0000ACXD'],
+                 ['Min_10SIMELE00INACXD'],
+                 ['Max_11HEAD0000THACRA','Max_11HEAD0000H3ACRA'],
                  ['Min_11HEAD0000THACXA','Min_11HEAD0000H3ACXA'],
                  ['Max_11NECKUP00THFOZA','Max_11NECKUP00H3FOZA'],
                  ['Max_11CHST0000THACRC','Max_11CHST0000H3ACRC'],
@@ -164,10 +175,10 @@ s2 = subset.query('Series_2==1 and Speed==48 and Type==\'ICE\'')
 ev_s2 = s2.apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)
 s2 = s2[['Pair_name','ID11']]
 s2['Pair'] = ev_s2
-s2['Series'] = '(Series 2)'
+s2['Series'] = '\n(Series 2)'
 pairs = pairs.append(s2)
 pairs['ID11'] = pairs['ID11'].apply(rename)
-pairs['Label'] = pairs[['ID11','Series']].apply(lambda x: '\n'.join(x), axis=1)
+pairs['Label'] = pairs[['ID11','Series']].apply(lambda x: ''.join(x), axis=1)
 
 r = re.compile('_\d\d')
 
@@ -192,15 +203,15 @@ for ch in plot_channels:
 #                     boxprops={'alpha': 0.5}, width=0.4, sym='')
     fig, ax = plt.subplots()
     sns.despine(ax=ax, bottom=True, top=True, left=True)
-    ax = sns.pointplot(x='Label', y='ch', data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, ax=ax)
-    ax = sns.stripplot(x='Label', y='ch', data=pairs, color='.25', alpha=0.4, size=8, ax=ax, marker='*')
-    ax.axhline(0, linestyle='--', color='k', linewidth=1)
+    ax = sns.pointplot(y='Label', x='ch', data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
+    ax = sns.stripplot(y='Label', x='ch', data=pairs, color='.25', ax=ax, orient='h')
+    ax.axvline(0, linestyle='--', color='k', linewidth=1)
 #    ax.fill_between(ax.get_xlim(), 0, ax.get_ylim()[1], color=(0.5, 0.5, 0.5), alpha=0.2)
-    ax = set_labels(ax, {'title': rename(title), 'xlabel': '', 'ylabel': 'Difference in ' + get_units(title)})
-    ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'ylabel': 20})
-    ax.set_ylim([i*2 for i in ax.get_ylim()])
-    ax.set_xlim([-1, 2.5])
-    plt.locator_params(axis='y', nbins=10)
+    ax = set_labels(ax, {'title': rename(title), 'ylabel': '', 'xlabel': 'Difference in ' + get_units(title)})
+    ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'xlabel': 20})
+    ax.set_xlim([i*2 for i in ax.get_xlim()])
+    ax.set_ylim([-0.5, 3.5])
+    plt.locator_params(axis='x', nbins=8)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
 
@@ -244,14 +255,18 @@ for ch in plot_channels:
     # get differences
     feat_subset = feat_subset.loc[pairs.index] - feat_subset.loc[pairs['Pair']].values
     pairs['ch'] = feat_subset
-
-    ax = sns.boxplot(x='Label', y='ch', data=pairs, linewidth=1, 
-                     boxprops={'alpha': 0.5}, width=0.4, sym='')
-    ax = sns.stripplot(x='Label', y='ch', data=pairs, color='.25', ax=ax)
-    ax.axhline(0, linestyle='--', color='k', linewidth=1)
+    
+    fig, ax = plt.subplots()
+    sns.despine(ax=ax, bottom=True, top=True, left=True)
+    ax = sns.pointplot(y='Label', x='ch', data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
+    ax = sns.stripplot(y='Label', x='ch', data=pairs, color='.25', ax=ax, orient='h')
+    ax.axvline(0, linestyle='--', color='k', linewidth=1)
 #    ax.fill_between(ax.get_xlim(), 0, ax.get_ylim()[1], color=(0.5, 0.5, 0.5), alpha=0.2)
-    ax = set_labels(ax, {'title': rename(title), 'xlabel': '', 'ylabel': get_units(title)})
-    ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'ylabel': 20})
+    ax = set_labels(ax, {'title': rename(title), 'ylabel': '', 'xlabel': 'Difference in ' + get_units(title)})
+    ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'xlabel': 20})
+    ax.set_xlim([i*2 for i in ax.get_xlim()])
+    ax.set_ylim([-0.5, 1.5])
+    plt.locator_params(axis='x', nbins=8)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
 
@@ -355,15 +370,14 @@ for chx in xlist:
 
 #%% create a linear regression model and use it to predict responses based on weight/partner weight to 
 # assess how much the two account for observed differences in the response
+to_json_2 = {}
 from sklearn.linear_model import LinearRegression
 ylist = ['Max_11HEAD0000THACRA',
 #         'Max_11NECKUP00THFOZA',
          'Max_11CHST0000THACRC',
          'Min_11CHST0000THACXC',
-         'Min_11PELV0000THACXA',
          'Max_13HEAD0000HFACRA',
-         'Min_13HEAD0000HFACXA',
-         'Min_13CHST0000HFACXC']
+         'Min_13HEAD0000HFACXA']
 xlist = [['Weight']]
 
 
@@ -371,6 +385,7 @@ xlist = [['Weight']]
 subset = table.query('Type==\'ICE\' and Speed==48')
 subset_test = table.query('Type==\'EV\' and Speed==48')
 for chx in xlist:
+    to_json_2['predict_ev'] = {}
     error = []
     for chy in ylist:
         x = features.loc[subset.index, chx]
@@ -392,19 +407,41 @@ for chx in xlist:
         print(chy, chx, rsq)
         y_pred = np.squeeze(lr.predict(x_test))
         err = y_pred-y_test
+        to_json_2['predict_ev'][chy] = list(err)
+        response_name = 'THOR ' + rename(chy) if '11' in chy else 'HF ' + rename(chy)
         error.append(pd.DataFrame({'Value': np.concatenate((y_pred, y_test, np.squeeze(y))),
-                                   'Response_type': np.concatenate((np.tile('Predicted',len(y_pred)), 
-                                                              np.tile('Actual',len(y_test)),
+                                   'Response_type': np.concatenate((np.tile('Predicted EV',len(y_pred)), 
+                                                              np.tile('Actual EV',len(y_test)),
                                                               np.tile('ICE', len(y)))),
-                                   'Response_name': chy}))
+                                   'Response_name': '\n'.join(response_name.split())}))
     error = pd.concat(error)
-    fig, ax = plt.subplots(figsize=(10,8))
-    ax = sns.pointplot(x='Response_name', y='Value', hue='Response_type', hue_order=['ICE','Predicted','Actual'], data=error, join=False, ci='sd', err_style='bars', capsize=0.2, errwidth=2, dodge=0.5, ax=ax)
-    #ax = sns.boxplot(x='Response', y='Error', boxprops={'alpha': 0.5}, data=error)
-    ax = sns.stripplot(x='Response_name', y='Value', hue='Response_type', hue_order=['ICE','Predicted','Actual'], alpha=0.3, data=error, dodge=0.5)
-    ax.axhline(0,linewidth=1,color='k')
-    ax.tick_params(axis='x', rotation=90)
-    ax.set_title(chx)
+    fig, ax = plt.subplots()
+    ax = sns.pointplot(x='Response_name', 
+                       y='Value', 
+                       hue='Response_type', 
+                       hue_order=['ICE','Predicted EV','Actual EV'], 
+                       data=error, 
+                       join=False, 
+                       ci='sd', 
+                       err_style='bars', 
+                       capsize=0.2, 
+                       errwidth=2, 
+                       dodge=0.45, 
+                       ax=ax)
+    
+    ax = sns.stripplot(x='Response_name', 
+                       y='Value', 
+                       hue='Response_type', 
+                       hue_order=['ICE','Predicted EV','Actual EV'], 
+                       alpha=0.3, 
+                       data=error, 
+                       dodge=0.45)
+    
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(1.05,-0.4), ncol=3)
+    ax = set_labels(ax, {'title': 'Predicted EV Response', 'ylabel': get_units(chy[5:]), 'xlabel': ''})
+    ax = adjust_font_sizes(ax, {'ticklabels': 18, 'title': 24, 'axlabels': 20, 'legend': 18})
+#    ax.tick_params(axis='x', rotation=90)
 
 #%% same as above but backwards
 from sklearn.linear_model import LinearRegression
@@ -412,10 +449,8 @@ ylist = ['Max_11HEAD0000THACRA',
 #         'Max_11NECKUP00THFOZA',
          'Max_11CHST0000THACRC',
          'Min_11CHST0000THACXC',
-         'Min_11PELV0000THACXA',
          'Max_13HEAD0000HFACRA',
-         'Min_13HEAD0000HFACXA',
-         'Min_13CHST0000HFACXC']
+         'Min_13HEAD0000HFACXA']
 xlist = [['Weight']]
 
 
@@ -424,6 +459,7 @@ subset = table.query('Type==\'ICE\' and Speed==48')
 subset_test = table.query('Type==\'EV\' and Speed==48')
 for chx in xlist:
     error = []
+    to_json_2['predict_ice'] = {}
     for chy in ylist:
         x = features.loc[subset.index, chx]
         y = features.loc[subset.index, chy].abs()
@@ -444,20 +480,41 @@ for chx in xlist:
         rsq = lr.score(x_test, y_test)
         print(chy, chx, rsq)
         y_pred = np.squeeze(lr.predict(x))
-#        err = y_pred-y_test
+        err = y_pred-y
+        to_json_2['predict_ice'][chy] = list(err)
+        response_name = 'THOR ' + rename(chy) if '11' in chy else 'HF ' + rename(chy)
         error.append(pd.DataFrame({'Value': np.concatenate((y_pred, y, np.squeeze(y_test))),
-                                   'Response_type': np.concatenate((np.tile('Predicted',len(y_pred)), 
-                                                              np.tile('Actual',len(y)),
+                                   'Response_type': np.concatenate((np.tile('Predicted ICE',len(y_pred)), 
+                                                              np.tile('Actual ICE',len(y)),
                                                               np.tile('EV', len(y_test)))),
-                                   'Response_name': chy}))
+                                   'Response_name': '\n'.join(response_name.split())}))
     error = pd.concat(error)
-    fig, ax = plt.subplots(figsize=(10,8))
-    ax = sns.pointplot(x='Response_name', y='Value', hue='Response_type', hue_order=['EV','Predicted','Actual'], data=error, join=False, ci='sd', err_style='bars', capsize=0.2, errwidth=2, dodge=0.5, ax=ax)
-    #ax = sns.boxplot(x='Response', y='Error', boxprops={'alpha': 0.5}, data=error)
-    ax = sns.stripplot(x='Response_name', y='Value', hue='Response_type', hue_order=['EV','Predicted','Actual'], alpha=0.3, data=error, dodge=0.5)
-    ax.axhline(0,linewidth=1,color='k')
-    ax.tick_params(axis='x', rotation=90)
-    ax.set_title(chx)
+    fig, ax = plt.subplots()
+    ax = sns.pointplot(x='Response_name', 
+                       y='Value', 
+                       hue='Response_type', 
+                       hue_order=['EV','Predicted ICE','Actual ICE'], 
+                       data=error, 
+                       join=False, 
+                       ci='sd', 
+                       err_style='bars', 
+                       capsize=0.2, 
+                       errwidth=2, 
+                       dodge=0.45, 
+                       ax=ax)
+    ax = sns.stripplot(x='Response_name', 
+                       y='Value', 
+                       hue='Response_type', 
+                       hue_order=['EV','Predicted ICE','Actual ICE'], 
+                       alpha=0.3, 
+                       data=error, 
+                       dodge=0.45)
+    
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(1.05,-0.4), ncol=3)
+    ax = set_labels(ax, {'title': 'Predicted ICE Response', 'ylabel': get_units(chy[5:]), 'xlabel': ''})
+    ax = adjust_font_sizes(ax, {'ticklabels': 18, 'title': 24, 'axlabels': 20, 'legend': 18})
+#    ax.tick_params(axis='x', rotation=90)
 #%%
 from sklearn.linear_model import LassoLars, Lars
 from sklearn.preprocessing import StandardScaler

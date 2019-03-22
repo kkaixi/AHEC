@@ -44,3 +44,16 @@ for(i in 1:(dim(tests)[1])){
 
 # write to json
 write_json(params,file.path(directory,'params.json'))
+
+
+# snippet to do stat testing for linear regression models
+lr.data <- fromJSON(file.path(directory, 'more_testing.json'))
+p.values <- list()
+for(name in names(lr.data)){
+  p.values[[name]] <- list()
+  for(ch in names(lr.data[[name]])){
+    res <- t.test(lr.data[[name]][[ch]])
+    p <- res$p.value
+    p.values[[name]][[ch]] <- p
+  }
+}

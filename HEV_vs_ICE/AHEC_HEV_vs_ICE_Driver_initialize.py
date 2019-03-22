@@ -95,6 +95,7 @@ preprocess_channels = ['11CHSTLEUPTHDSXB','11CHSTRIUPTHDSXB','11CHSTLELOTHDSXB',
 chdata[preprocess_channels] = chdata[preprocess_channels].applymap(lambda x: x-x[0])
 if 'TC13-006' in chdata.index:
     chdata.at['TC13-006','11SEBE0000B6FO0D'] = -chdata.at['TC13-006','11SEBE0000B6FO0D']
+chdata.at['TC18-030','10SIMELE00INACXD'] = np.tile(np.nan, len(cutoff))
 
 #%% feature extraction
 def get_all_features(write_csv=False):
