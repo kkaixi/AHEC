@@ -79,10 +79,12 @@ for i, grp in enumerate(grouped):
 #        x['Electric (MY 2016)'] = x.pop('EV')
 #        x['Conventional (MY 2015)'] = x.pop('ICE')
         fig, ax = plt.subplots()
-        ax = plot_overlay(ax, t, x)
-        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
-        ax.legend(ncol=2)
-        ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'legend': 20, 'ticklabels': 18})
+        ax = plot_overlay(ax, t, x, line_specs={'EV': {'color': (34/255, 89/255, 149/255)}, 'ICE': {'color': (205/255, 0, 26/255)}})
+        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch)})
+        ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'ticklabels': 18})
+#        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
+#        ax.legend(ncol=2)
+#        ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'legend': 20, 'ticklabels': 18})
         if 'FOZ' in ch:
             ax.set_ylabel(ax.get_ylabel() + r' ($\times 10^4$)')
             ax.set_ylim(-14000, 3800)
@@ -214,6 +216,8 @@ for ch in plot_channels:
     plt.locator_params(axis='x', nbins=8)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
+#    print(ch)
+#    print(pairs.groupby('Label').mean())
 
 #%% sns catplot 2
 plot_channels = [['Max_13HEAD0000HFACRA'],
@@ -269,6 +273,8 @@ for ch in plot_channels:
     plt.locator_params(axis='x', nbins=8)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
+#    print(ch)
+#    print(pairs.groupby('Label').mean())
 
 #%% mpl bar plots of aggregated pairs
 plot_channels = ['Max_11CHST003STHACRC',
@@ -420,6 +426,9 @@ for chx in xlist:
                        y='Value', 
                        hue='Response_type', 
                        hue_order=['ICE','Predicted EV','Actual EV'], 
+                       palette={'ICE': (205/255, 0, 26/255), 
+                                'Predicted EV': (116/255, 36/255, 191/255), 
+                                'Actual EV':(34/255, 89/255, 149/255)},
                        data=error, 
                        join=False, 
                        ci='sd', 
@@ -433,6 +442,9 @@ for chx in xlist:
                        y='Value', 
                        hue='Response_type', 
                        hue_order=['ICE','Predicted EV','Actual EV'], 
+                       palette={'ICE': (205/255, 0, 26/255), 
+                                'Predicted EV': (116/255, 36/255, 191/255), 
+                                'Actual EV':(34/255, 89/255, 149/255)},
                        alpha=0.3, 
                        data=error, 
                        dodge=0.45)
@@ -493,7 +505,10 @@ for chx in xlist:
     ax = sns.pointplot(x='Response_name', 
                        y='Value', 
                        hue='Response_type', 
-                       hue_order=['EV','Predicted ICE','Actual ICE'], 
+                       hue_order=['EV','Predicted ICE','Actual ICE'],  
+                       palette={'Actual ICE': (205/255, 0, 26/255), 
+                                'Predicted ICE': (186/255, 51/255, 168/255), 
+                                'EV':(34/255, 89/255, 149/255)},
                        data=error, 
                        join=False, 
                        ci='sd', 
@@ -505,10 +520,14 @@ for chx in xlist:
     ax = sns.stripplot(x='Response_name', 
                        y='Value', 
                        hue='Response_type', 
-                       hue_order=['EV','Predicted ICE','Actual ICE'], 
+                       hue_order=['EV','Predicted ICE','Actual ICE'],   
+                       palette={'Actual ICE': (205/255, 0, 26/255), 
+                                'Predicted ICE': (186/255, 51/255, 168/255), 
+                                'EV':(34/255, 89/255, 149/255)},
                        alpha=0.3, 
                        data=error, 
-                       dodge=0.45)
+                       dodge=0.45,
+                       ax=ax)
     
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles[3:], labels[3:], bbox_to_anchor=(1.05,-0.4), ncol=3)
