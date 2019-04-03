@@ -27,8 +27,8 @@ for data in params['test']:
 #    print(test)
 #    print(indices_sig)
     
-plot_channels = ['Max_11HICR0015THACRA',
-                 'Max_11HICR0015H3ACRA',
+plot_channels = ['Min_10CVEHCG0000ACXD',
+                 'Min_10SIMELE00INACXD',
                  'Max_11HEAD0000THACRA',
                  'Max_11HEAD0000H3ACRA',
                  'Min_11HEAD0000THACXA',

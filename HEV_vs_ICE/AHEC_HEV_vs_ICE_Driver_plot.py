@@ -68,6 +68,7 @@ names = {'Min_11HEAD0000THACXA': 'Head Acx',
 rename = partial(rename, names=names)
 #%% time series overlays w/o highlight
 plot_channels = ['11HEAD0000THACXA',
+                 '11HEAD0000THACRA',
                  '11FEMRLE00THFOZB',
                  '11FEMRRI00THFOZB']
 grouped = table.table.query_list('Model',['SOUL','SOUL EV']).groupby(['Pair_name','Speed'])
@@ -80,7 +81,7 @@ for i, grp in enumerate(grouped):
 #        x['Conventional (MY 2015)'] = x.pop('ICE')
         fig, ax = plt.subplots()
         ax = plot_overlay(ax, t, x, line_specs={'EV': {'color': (34/255, 89/255, 149/255)}, 'ICE': {'color': (205/255, 0, 26/255)}})
-        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch)})
+        ax = set_labels(ax, {'title': rename(ch), 'xlabel': 'Time [s]', 'ylabel': get_units(ch)})
         ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'ticklabels': 18})
 #        ax = set_labels(ax, {'title': '{0} (Test {1})'.format(rename(ch), 2-i), 'xlabel': 'Time [s]', 'ylabel': get_units(ch), 'legend': {'bbox_to_anchor': [1,1]}})
 #        ax.legend(ncol=2)
@@ -93,75 +94,8 @@ for i, grp in enumerate(grouped):
             ax.set_ylim(-70, 10)
         plt.show()
         plt.close(fig)
-#%%
-      
-plot_channels = [['Max_11HICR0015THACRA','Max_11HICR0015H3ACRA'],
-                 ['Max_11HEAD003STHACRA','Max_11HEAD003SH3ACRA'],
-                 ['Min_11HEAD0000THACXA','Min_11HEAD0000H3ACXA'],
-                 ['Max_11NECKUP00THFOZA','Max_11NECKUP00H3FOZA'],
-                 ['Max_11CHST003STHACRC','Max_11CHST003SH3ACRC'],
-                 ['Min_11CHST0000THACXC','Min_11CHST0000H3ACXC']]
-subset = table.query('Pair_name==\'FUSION\'')
-for ch in plot_channels:
-    feat_subset = features.loc[subset.index, ch]
-    if len(ch)>1:
-        feat_subset = feat_subset.dropna(how='all').apply(np.nansum, axis=1).rename('ch').abs()
-    else:
-        feat_subset = feat_subset.squeeze().rename('ch').abs()
-    x = pd.concat((subset, feat_subset), axis=1)
-    fig, ax = plt.subplots()
-    ax = sns.barplot(x='ID11', y='ch', hue='Type', data=x)
-    ax = set_labels(ax, {'title': rename(ch[0]), 'ylabel': get_units(ch[0]), 'xlabel': ''})
-    ax = adjust_font_sizes(ax, {'title': 24, 'axlabels': 20, 'ticklabels': 20})
-    
-#%% mpl bar plots of individual pairs
-plot_channels = ['Max_11HICR0015THACRA',
-                 'Max_11HICR0015H3ACRA',
-                 'Max_11HEAD003STHACRA',
-                 'Max_11HEAD003SH3ACRA',
-                 'Min_11HEAD0000THACXA',
-                 'Min_11HEAD0000H3ACXA',
-                 'Max_11NECKUP00THFOZA',
-                 'Max_11NECKUP00H3FOZA',
-                 'Max_11CHST003STHACRC',
-                 'Max_11CHST003SH3ACRC',
-                 'Min_11CHST0000THACXC',
-                 'Min_11CHST0000H3ACXC',
-                 'Min_11SPIN0100THACXC',
-                 'Max_11SEBE0000B6FO0D',
-                 'Max_13HEAD003SHFACRA',
-                 'Min_13HEAD0000HFACXA',
-                 'Max_13NECKUP00HFFOZA',
-                 'Max_13CHST003SHFACRC',
-                 'Min_13CHST0000HFACXC',
-                 'Max_13SEBE0000B6FO0D']
-plot_channels = ['Max_11HEAD003STHACRA',
-                 'Max_11NECKUP00THFOZA',
-                 'Max_11CHST003STHACRC',
-                 'Max_11CHST003SH3ACRC']
-
-for d in dummies:
-    for s in ['Series_1']:
-        subset = table.query(s + '==1 and ID11==\'{}\''.format(d))
-        pairs = subset['Pair_name'].unique()
-        codes = letters[:len(pairs)]
-        for ch in plot_channels:
-            ch_x = features.loc[subset.index, ch].abs()
-            if ch_x.isna().all(): continue
-            x = pd.concat([subset, ch_x], axis=1)
-            fig, ax = plt.subplots()
-            ax = sns.barplot(x='Pair_name', y=ch, hue='Type_2', data=x)
-#            ax.set_xticklabels(list(codes))
-            ax = set_labels(ax, {'title': rename(ch), 'ylabel': get_units(ch), 'xlabel': 'Model'})
-            ax = adjust_font_sizes(ax, {'title': 24, 'ticklabels': 20, 'axlabels': 20})
-            plt.xticks(rotation=90)
-            plt.show()
-            plt.close(fig)
-
 #%% sns catplot
-plot_channels = [['Min_10CVEHCG0000ACXD'],
-                 ['Min_10SIMELE00INACXD'],
-                 ['Max_11HEAD0000THACRA','Max_11HEAD0000H3ACRA'],
+plot_channels = [['Max_11HEAD0000THACRA','Max_11HEAD0000H3ACRA'],
                  ['Min_11HEAD0000THACXA','Min_11HEAD0000H3ACXA'],
                  ['Max_11NECKUP00THFOZA','Max_11NECKUP00H3FOZA'],
                  ['Max_11CHST0000THACRC','Max_11CHST0000H3ACRC'],
@@ -184,6 +118,10 @@ pairs['Label'] = pairs[['ID11','Series']].apply(lambda x: ''.join(x), axis=1)
 
 r = re.compile('_\d\d')
 
+pvals = pd.DataFrame({'THOR': res['Series_1_48_THOR_t'].loc[np.concatenate(plot_channels), 'p'],
+                      'Hybrid III': res['Series_1_48_H3_t'].loc[np.concatenate(plot_channels), 'p'],
+                      'THOR\n(Series 2)': res['Series_2_48_t'].loc[np.concatenate(plot_channels), 'p']})
+order = ['THOR\n(Series 2)', 'Hybrid III', 'THOR']
 for ch in plot_channels:
     # combine features
     feat_subset = features.loc[subset.index, ch]
@@ -205,21 +143,29 @@ for ch in plot_channels:
 #                     boxprops={'alpha': 0.5}, width=0.4, sym='')
     fig, ax = plt.subplots()
     sns.despine(ax=ax, bottom=True, top=True, left=True)
-    ax = sns.pointplot(y='Label', x='ch', data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
-    ax = sns.stripplot(y='Label', x='ch', data=pairs, color='.25', ax=ax, orient='h')
+    ax = sns.pointplot(y='Label', x='ch', order=order, data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
+    ax = sns.stripplot(y='Label', x='ch', order=order, data=pairs, color='.25', ax=ax, orient='h')
     ax.axvline(0, linestyle='--', color='k', linewidth=1)
 #    ax.fill_between(ax.get_xlim(), 0, ax.get_ylim()[1], color=(0.5, 0.5, 0.5), alpha=0.2)
     ax = set_labels(ax, {'title': rename(title), 'ylabel': '', 'xlabel': 'Difference in ' + get_units(title)})
     ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'xlabel': 20})
     ax.set_xlim([i*2 for i in ax.get_xlim()])
     ax.set_ylim([-0.5, 3.5])
-    plt.locator_params(axis='x', nbins=8)
+    add_stars(ax, 
+#              1.7*pairs.groupby('Label').max().loc[order, 'ch'].values, 
+              [0.8*ax.get_xlim()[1]]*3,
+              pvals.loc[ch].apply(np.nansum)[order].values, 
+              ax.get_yticks(), 
+              orientation='h',
+              fontsize=24)
+    plt.locator_params(axis='x', nbins=7)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
-#    print(ch)
-#    print(pairs.groupby('Label').mean())
+    print(ch)
+    print(pairs.groupby('Label').mean())
+    
 
-#%% sns catplot 2
+#%% sns catplot HF
 plot_channels = [['Max_13HEAD0000HFACRA'],
                  ['Min_13HEAD0000HFACXA'],
                  ['Max_13NECKUP00HFFOZA'],
@@ -243,6 +189,11 @@ pairs['Label'] = pairs[['ID13','Series']].apply(lambda x: '\n'.join(x), axis=1)
 
 r = re.compile('_\d\d')
 
+order = ['Hybrid III Female\n(Series 2)', 'Hybrid III Female\n(Series 1)']
+
+pvals = pd.DataFrame({'Hybrid III Female\n(Series 2)': res['Series_2_48_t'].loc[np.concatenate(plot_channels), 'p'],
+                       'Hybrid III Female\n(Series 1)': res['Series_1_48_HF_t'].loc[np.concatenate(plot_channels), 'p']})
+    
 for ch in plot_channels:
     # combine features
     feat_subset = features.loc[subset.index, ch]
@@ -262,75 +213,81 @@ for ch in plot_channels:
     
     fig, ax = plt.subplots()
     sns.despine(ax=ax, bottom=True, top=True, left=True)
-    ax = sns.pointplot(y='Label', x='ch', data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
-    ax = sns.stripplot(y='Label', x='ch', data=pairs, color='.25', ax=ax, orient='h')
+    ax = sns.pointplot(y='Label', x='ch', order=order, data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
+    ax = sns.stripplot(y='Label', x='ch', order=order, data=pairs, color='.25', ax=ax, orient='h')
     ax.axvline(0, linestyle='--', color='k', linewidth=1)
 #    ax.fill_between(ax.get_xlim(), 0, ax.get_ylim()[1], color=(0.5, 0.5, 0.5), alpha=0.2)
     ax = set_labels(ax, {'title': rename(title), 'ylabel': '', 'xlabel': 'Difference in ' + get_units(title)})
     ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'xlabel': 20})
     ax.set_xlim([i*2 for i in ax.get_xlim()])
     ax.set_ylim([-0.5, 1.5])
+    add_stars(ax, 
+#              1.7*pairs.groupby('Label').max().loc[order, 'ch'].values, 
+              [0.8*ax.get_xlim()[1]]*2,
+              pvals.loc[ch, order].values[0], 
+              ax.get_yticks(), 
+              orientation='h',
+              fontsize=24)
     plt.locator_params(axis='x', nbins=8)
 #    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
     plt.show()
-#    print(ch)
-#    print(pairs.groupby('Label').mean())
+    print(ch)
+    print(pairs.groupby('Label').mean())
 
-#%% mpl bar plots of aggregated pairs
-plot_channels = ['Max_11CHST003STHACRC',
-                 'Max_11HEAD003STHACRA',
-                 'Max_11HEAD003SH3ACRA',
-                 'Max_11HICR0015THACRA',
-                 'Max_11SEBE0000B6FO0D',
-                 'Min_11CHST0000THACXC',
-                 'Min_11SPIN0100THACXC',
-                 'Min_11PELV0000THACXA',
-                 'Min_11PELV0000H3ACXA',
-                 'Tmax_11ACTBLE00THFOXB',
-                 'Tmin_10SIMELE00INACXD',
-                 'Max_11CHST003SH3ACRC',
-                 'Min_10SIMELE00INACXD',
-                 'Min_11ILACLE00THFOXA',
-                 'Min_11ILACRI00THFOXA']
-for t in ['Series_1','Series_2']:
-    subset = table.query(t + '==1')
-    for ch in plot_channels:
-        x = arrange_by_group(subset, features[ch], 'Type')
-        if x is None or len(x)==0: continue
-        x = {k: x[k].abs().to_frame() for k in x}
-        fig, ax = plt.subplots()
-        ax = plot_bar(ax, x)
-        ax.set_title(' '.join((t, ch)))
-        ax.legend()
-        plt.show()
-        plt.close(fig)
-#%% plotly bar plots--individual 
-d = 'TH'
-ch = 'Max_11CHST003STHACRC'
-t = 'Series_2'
-def plot_bar_plotly(d, ch, t):
-    subset = table.query(t + '==1 and ID11==\'{}\''.format(d))
-    x = intersect_columns(arrange_by_group(subset, features[ch], 'Type', col_key='Pair_name'))
-    if x is None or len(x)==0: 
-        print('data invalid!')
-        return
-    x = {k: x[k].abs() for k in x}
-    indices = get_indices(len(x), x[list(x.keys())[0]].shape[1], 0.6)
-    data = []
-    for i, k in enumerate(x):
-        trace = go.Bar(x = indices[i],
-                       y = x[k].mean(),
-                       error_y = {'array': x[k].std()},
-                       name = k)
-        data.append(trace)
-        
-    layout = go.Layout(showlegend = True,
-                       xaxis = go.layout.XAxis(ticktext = x[list(x.keys())[0]].columns,
-                                               tickvals = np.mean(indices, axis=0)),
-                       title = ' '.join((t, ch)))
-    pfig = go.Figure(data=data, layout=layout)
-    plot(pfig)
+#%% sns catplot for vehicle stuff
+plot_channels = [['Min_10CVEHCG0000ACXD'],
+                 ['Min_10SIMELE00INACXD']]
+
+subset = table.query('ID13!=\'YA\'')
+
+pairs = subset.query('Series_1==1 and Speed==48 and Type==\'ICE\'')[['Pair','Pair_name','ID11']]
+pairs['Series'] = 'Series 1'
+
+s2 = subset.query('Series_2==1 and Speed==48 and Type==\'ICE\'')
+ev_s2 = s2.apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)
+s2 = s2[['Pair_name','ID11']]
+s2['Pair'] = ev_s2
+s2['Series'] = 'Series 2'
+pairs = pairs.append(s2)
+
+r = re.compile('_\d\d')
+
+order = ['Series 2','Series 1']
+for ch in plot_channels:
+    # combine features
+    feat_subset = features.loc[subset.index, ch]
+    if len(ch)>1:
+        feat_subset = feat_subset.dropna(how='all').apply(np.nansum, axis=1).rename('ch').abs()
+    else:
+        feat_subset = feat_subset.squeeze().rename('ch').abs()
+    if len(ch)>1:
+        title = ch[0].replace('TH','xx')
+    else:
+        title = ch[0]
     
+    # get differences
+    feat_subset = feat_subset.loc[pairs.index] - feat_subset.loc[pairs['Pair']].values
+    pairs['ch'] = feat_subset
+
+#    ax = sns.boxplot(x='Label', y='ch', data=pairs, linewidth=1, 
+#                     boxprops={'alpha': 0.5}, width=0.4, sym='')
+    fig, ax = plt.subplots()
+    sns.despine(ax=ax, bottom=True, top=True, left=True)
+    ax = sns.pointplot(y='Series', x='ch', order=order, data=pairs, join=False, ci='sd', err_style='bars', capsize=0.2, color='.25', errwidth=2, orient='h', ax=ax)
+    ax = sns.stripplot(y='Series', x='ch', order=order, data=pairs, color='.25', ax=ax, orient='h')
+    ax.axvline(0, linestyle='--', color='k', linewidth=1)
+#    ax.fill_between(ax.get_xlim(), 0, ax.get_ylim()[1], color=(0.5, 0.5, 0.5), alpha=0.2)
+    ax = set_labels(ax, {'title': rename(title), 'ylabel': '', 'xlabel': 'Difference in ' + get_units(title)})
+    ax = adjust_font_sizes(ax, {'ticklabels': 20, 'title': 24, 'xlabel': 20})
+    ax.set_xlim([i*2 for i in ax.get_xlim()])
+    ax.set_ylim([-0.5, 2.5])
+    plt.locator_params(axis='x', nbins=7)
+#    plt.savefig(directory + title + '.png', dpi=600, bbox_inches='tight')
+    plt.show()
+    print(ch)
+    print(pairs.groupby('Series').mean())
+    
+
 #%% plot pairs using CIs from probability distribution of difference
         
 subset = table.query('ID11==\'H3\' and Series_1==1 and Type==\'ICE\'')
@@ -356,23 +313,6 @@ for ch in plot_channels:
     plt.show()
     plt.close(fig)
 
-#%% regression--difference
-# plot: 1. weight vs. response; 2. partner weight vs. response; 3. partner weight/self weight ratio vs. response
-
-
-subset = table.query('Type==\'ICE\' and Speed==48')
-for chx in xlist:
-    for chy in ylist:
-        if chx==chy: continue
-        rsq = r2(features.loc[subset.index, chx], features.loc[subset.index, chy])
-        x = features.loc[subset.index, [chx, chy]]
-        x['Series'] = ['Series 1' if subset.at[i,'Series_1']==1 else 'Series 2' for i in x.index]
-        fig, ax = plt.subplots()
-        ax = sns.scatterplot(x=chx, y=chy, hue='Series', data=x, ax=ax)
-        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy, 'title': 'R2={}'.format(str(rsq)[:5])})
-        ax = adjust_font_sizes(ax, {'axlabels': 20, 'ticklabels': 18, 'title': 24})
-        plt.show()
-        plt.close(fig)
 
 #%% create a linear regression model and use it to predict responses based on weight/partner weight to 
 # assess how much the two account for observed differences in the response
@@ -383,7 +323,9 @@ ylist = ['Max_11HEAD0000THACRA',
          'Max_11CHST0000THACRC',
          'Min_11CHST0000THACXC',
          'Max_13HEAD0000HFACRA',
-         'Min_13HEAD0000HFACXA']
+         'Min_13HEAD0000HFACXA',
+         'Max_13CHST0000HFACRC',
+         'Min_13CHST0000HFACXC']
 xlist = [['Weight']]
 
 
@@ -421,7 +363,7 @@ for chx in xlist:
                                                               np.tile('ICE', len(y)))),
                                    'Response_name': '\n'.join(response_name.split())}))
     error = pd.concat(error)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8,4))
     ax = sns.pointplot(x='Response_name', 
                        y='Value', 
                        hue='Response_type', 
@@ -450,9 +392,9 @@ for chx in xlist:
                        dodge=0.45)
     
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(1.05,-0.4), ncol=3)
+    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(0.9,-0.4), ncol=3)
     ax = set_labels(ax, {'title': 'Predicted EV Response', 'ylabel': get_units(chy[5:]), 'xlabel': ''})
-    ax = adjust_font_sizes(ax, {'ticklabels': 18, 'title': 24, 'axlabels': 20, 'legend': 18})
+    ax = adjust_font_sizes(ax, {'ticklabels': 16, 'title': 20, 'axlabels': 20, 'legend': 18})
 #    ax.tick_params(axis='x', rotation=90)
 
 #%% same as above but backwards
@@ -462,7 +404,9 @@ ylist = ['Max_11HEAD0000THACRA',
          'Max_11CHST0000THACRC',
          'Min_11CHST0000THACXC',
          'Max_13HEAD0000HFACRA',
-         'Min_13HEAD0000HFACXA']
+         'Min_13HEAD0000HFACXA',
+         'Max_13CHST0000HFACRC',
+         'Min_13CHST0000HFACXC']
 xlist = [['Weight']]
 
 
@@ -501,7 +445,7 @@ for chx in xlist:
                                                               np.tile('EV', len(y_test)))),
                                    'Response_name': '\n'.join(response_name.split())}))
     error = pd.concat(error)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8,4))
     ax = sns.pointplot(x='Response_name', 
                        y='Value', 
                        hue='Response_type', 
@@ -530,46 +474,11 @@ for chx in xlist:
                        ax=ax)
     
     handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(1.05,-0.4), ncol=3)
+    ax.legend(handles[3:], labels[3:], bbox_to_anchor=(0.9,-0.4), ncol=3)
     ax = set_labels(ax, {'title': 'Predicted ICE Response', 'ylabel': get_units(chy[5:]), 'xlabel': ''})
-    ax = adjust_font_sizes(ax, {'ticklabels': 18, 'title': 24, 'axlabels': 20, 'legend': 18})
+    ax = adjust_font_sizes(ax, {'ticklabels': 16, 'title': 20, 'axlabels': 20, 'legend': 18})
 #    ax.tick_params(axis='x', rotation=90)
-#%%
-from sklearn.linear_model import LassoLars, Lars
-from sklearn.preprocessing import StandardScaler
-ylist = ['Max_11CHST0000THACRC',
-         'Min_11CHST0000THACXC']
-drop = ['Max_11CHST0000THACRC',
-        'Max_11CHST003STHACRC',
-        'Min_11CHST0000THACXC',
-        'Auc_11CHST003STHACRC',
-        'Min_11SPIN1200THACXC',
-        'Min_11CHSTRIUPTHDSXB']
-subset = table.query('Type==\'ICE\' and Speed==48')
-ss = StandardScaler()
-for chy in ylist:
-    y = features.loc[subset.index, chy]
-    y = y[~y.isna()]
-    x = features.drop(chy, axis=1).loc[y.index].dropna(how='all',axis=1)
-    x = x.drop([i for i in drop if i in x.columns], axis=1)
-    x = pd.DataFrame(ss.fit_transform(x), index=x.index, columns=x.columns)
-    drop_cols = x.isna().sum()
-    drop_cols = drop_cols[drop_cols>len(y)//2]
-    x = x.drop(drop_cols.index, axis=1)
-    cols_with_na = x.isna().any()
-    cols_with_na = cols_with_na[cols_with_na]
-    # fill in missing numbers
-    for col in cols_with_na.index:
-        x[col] = x[col].replace(np.nan, x[col].mean())
-#    model = LassoLars(max_iter=1000)
-    model = Lars(n_nonzero_coefs=1)
-    model = model.fit(x, y)
-    coefs = pd.Series(model.coef_, index=x.columns)
-    coefs = coefs[coefs!=0]
-    print(chy)
-    print(coefs)
-    print(model.score(x,y))
-    print('\n')
+
 #%% regression: no difference
 ylist = ['Max_11HEAD0000THACRA',
          'Max_11CHST0000THACRC']
