@@ -109,17 +109,18 @@ def get_all_features(write_csv=False):
     append = [features]
     
     # get normalized values
-    self_weight = table['Weight']
-    partner_weight = table.loc[table['Pair'],'Weight']
+    self_weight = table[('10','Weight')]
+    partner_weight = table.loc[table[('10','Pair')],('10','Weight')]
     partner_weight.index = self_weight.index
     ratio_weight = partner_weight/self_weight
+    olc = chdata[['10CVEHCG0000ACXD','10SIMELE00INACXD','10SIMERI00INACXD']].applymap(get_olc).rename(lambda x: 'OLC_' + x, axis=1)
     
     append.append(partner_weight.rename('Partner_weight'))
     append.append(ratio_weight.rename('Ratio_weight'))
     append.append(self_weight.rename('Weight'))
     append.append((self_weight*partner_weight).rename('Product_weight'))
-    append.append(table['Speed2'])
-    
+    append.append(table[('10','Speed2')].rename('Speed2'))
+    append.append(olc)
 #    append.append((features.filter(regex='M[ai][xn]_')
 #                           .divide(ratio_weight.loc[features.index], axis=0)
 #                           .rename(lambda x: x + '/ratio_weight', axis=1)))
@@ -146,10 +147,10 @@ features = get_all_features(write_csv=True)
 
 #%% get differences in features
 diff_features = {}
-subset = table.query('Series_1==1 and Type==\'ICE\'')
+subset = table['10'].query('Series_1==1 and Type==\'ICE\'')
 diff_features['S1'] = features.loc[subset.index] - features.loc[subset['Pair']].values
 
-subset = table.query('Series_2==1').groupby('Pair_name')
+subset = table['10'].query('Series_2==1').groupby('Pair_name')
 diff = []
 for grp in subset:
     ice_features = features.loc[grp[1].query('Type==\'ICE\'').index]

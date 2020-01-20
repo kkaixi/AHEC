@@ -53,6 +53,7 @@ names = {'Min_11HEAD0000THACXA': 'Head Acx',
          '11HEAD0000THACXA': 'Head Acx',
          '11FEMRLE00THFOZB': 'Left Femur Fz',
          '11FEMRRI00THFOZB': 'Right Femur Fz',
+
          'Max_11NECKUP00THFOZA': 'Upper Neck Fz',
          'Max_11NECKUP00H3FOZA': 'Upper Neck Fz',
          'Max_13NECKUP00HFFOZA': 'Upper Neck Fz',
