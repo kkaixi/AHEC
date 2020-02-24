@@ -113,7 +113,10 @@ def get_all_features(write_csv=False):
     partner_weight = table.loc[table[('10','Pair')],('10','Weight')]
     partner_weight.index = self_weight.index
     ratio_weight = partner_weight/self_weight
-    olc = chdata[['10CVEHCG0000ACXD','10SIMELE00INACXD','10SIMERI00INACXD']].applymap(get_olc).rename(lambda x: 'OLC_' + x, axis=1)
+    olc_left = chdata['10SIMELE00INACXD'].apply(get_olc)
+    olc_right = chdata['10SIMERI00INACXD'].apply(get_olc)
+    
+    olc = chdata[['10SIMELE00INACXD','10SIMERI00INACXD']].applymap(get_olc).rename(lambda x: 'OLC_' + x, axis=1)
     
     append.append(partner_weight.rename('Partner_weight'))
     append.append(ratio_weight.rename('Ratio_weight'))

@@ -64,7 +64,9 @@ names = {'Min_11HEAD0000THACXA': 'Head Acx',
          'Min_11PELV0000xxACXA': 'Pelvis Acx',
          'Min_13PELV0000HFACXA': 'Pelvis Acx',
          'Min_10CVEHCG0000ACXD': 'Vehicle CG Acx',
-         'Min_10SIMELE00INACXD': 'Left B-Pillar Acx'}
+         'Min_10SIMELE00INACXD': 'Left B-Pillar Acx',
+         'OLC_10SIMELE00INACXD': 'OLC (Left B-Pillar)',
+         'OLC_10SIMERI00INACXD': 'OLC (Right B-Pillar)'}
  
 rename = partial(rename, names=names)
 #%% time series overlays w/o highlight
@@ -237,15 +239,20 @@ for ch in plot_channels:
 
 #%% sns catplot for vehicle stuff
 plot_channels = [['Min_10CVEHCG0000ACXD'],
-                 ['Min_10SIMELE00INACXD']]
+                 ['Min_10SIMELE00INACXD'],
+                 ['OLC_10SIMELE00INACXD'],
+                 ['OLC_10SIMERI00INACXD']]
 
-subset = table.query('ID13!=\'YA\'')
+#subset = table.query('ID13!=\'YA\'')
+subset = table.loc[table['13'].query('ID13!=\'YA\'').index]
 
-pairs = subset.query('Series_1==1 and Speed==48 and Type==\'ICE\'')[['Pair','Pair_name','ID11']]
+pairs = subset.loc[subset['10'].query('Series_1==1 and Speed==48 and Type==\'ICE\'').index][[('10','Pair'),('10','Pair_name'),('11','ID11')]]
+pairs.columns = pairs.columns.get_level_values(1)
 pairs['Series'] = 'Series 1'
 
-s2 = subset.query('Series_2==1 and Speed==48 and Type==\'ICE\'')
-ev_s2 = s2.apply(lambda x: table.query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)
+s2 = subset.loc[subset['10'].query('Series_2==1 and Speed==48 and Type==\'ICE\'').index]
+s2.columns = s2.columns.get_level_values(1)
+ev_s2 = s2.apply(lambda x: table['10'].query('Series_2==1 and Model==\'{}\''.format(x['Counterpart'])).index.values[0], axis=1)
 s2 = s2[['Pair_name','ID11']]
 s2['Pair'] = ev_s2
 s2['Series'] = 'Series 2'
